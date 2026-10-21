@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>وسائل إيضاح | إدارة الخدمات</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">و</div><div><strong>وسائل إيضاح</strong><small>إدارة الخدمات والجداول</small></div></div>
+    <div class="top-actions"><span id="user-label" class="muted"></span><button id="logout" class="btn ghost hidden">تسجيل الخروج</button></div>
+  </header>
+  <main class="wrap">
+    <section id="setup-notice" class="notice hidden">
+      <h2>خطوة الإعداد الأخيرة</h2>
+      <p>اربط الموقع بمشروع Supabase عن طريق إدخال رابط المشروع ومفتاح anon/public في <code>app.js</code>، ثم نفّذ ملف <code>supabase.sql</code>. التفاصيل في README.</p>
+    </section>
+    <section id="auth-view" class="auth-grid">
+      <div class="hero panel">
+        <span class="eyebrow">منصة تنظيم الخدمات</span>
+        <h1>كل الخدمات<br><span>في مكان واحد.</span></h1>
+        <p>تابع جدول الخدمات، اعرف التكليفات الخاصة بك، وقدّم طلباتك بسهولة من الموبايل أو الكمبيوتر.</p>
+        <div class="hero-pills"><span>جدول واضح</span><span>متابعة الطلبات</span><span>إدارة آمنة</span></div>
+      </div>
+      <div class="panel auth-card">
+        <div class="tabs"><button class="tab active" data-tab="login">تسجيل الدخول</button><button class="tab" data-tab="signup">إنشاء حساب</button></div>
+        <form id="auth-form">
+          <label>البريد الإلكتروني<input id="email" type="email" required placeholder="name@example.com" autocomplete="email"></label>
+          <label>كلمة المرور<input id="password" type="password" required minlength="8" placeholder="٨ أحرف على الأقل" autocomplete="current-password"></label>
+          <label id="name-field" class="hidden">الاسم الكامل<input id="full-name" type="text" placeholder="اكتب اسمك"></label>
+          <button id="auth-submit" class="btn primary wide" type="submit">دخول</button>
+          <p id="auth-message" class="message" aria-live="polite"></p>
+        </form>
+        <p class="fineprint">إنشاء الحساب لا يمنح صلاحيات الإدارة. مسؤول الموقع فقط يمكنه اعتماد صلاحيات المسؤول.</p>
+      </div>
+    </section>
+
+    <section id="app-view" class="hidden">
+      <div class="welcome-row"><div><span class="eyebrow">لوحة المتابعة</span><h1 id="greeting">أهلاً بك</h1><p class="muted">تابع الخدمات والتكليفات من هنا.</p></div><div id="role-badge" class="role-badge">عضو</div></div>
+      <div class="stats">
+        <article class="stat panel"><span>الخدمات القادمة</span><strong id="stat-upcoming">—</strong><small>في الجدول</small></article>
+        <article class="stat panel"><span>تكليفاتي</span><strong id="stat-mine">—</strong><small>الخدمات المسندة إليك</small></article>
+        <article class="stat panel"><span>طلباتي المفتوحة</span><strong id="stat-requests">—</strong><small>بانتظار المراجعة</small></article>
+      </div>
+      <div class="section-heading"><div><h2>جدول الخدمات</h2><p class="muted">الخدمات المنشورة للأعضاء المسجلين.</p></div><button id="refresh" class="btn ghost">تحديث الجدول ↻</button></div>
+      <div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>الخدمة</th><th>التاريخ</th><th>الميعاد</th><th>المكان</th><th>المكلّف</th><th>ملاحظات</th></tr></thead><tbody id="services-body"><tr><td colspan="6" class="empty">جارٍ تحميل البيانات…</td></tr></tbody></table></div></div>
+      <div class="member-grid">
+        <section class="panel pad">
+          <div class="section-heading compact"><div><h2>طلب جديد</h2><p class="muted">أرسل طلبًا للمسؤول لمراجعته.</p></div></div>
+          <form id="request-form" class="stack">
+            <label>نوع الطلب<select id="request-type"><option value="تبديل خدمة">تبديل خدمة</option><option value="اعتذار عن خدمة">اعتذار عن خدمة</option><option value="استفسار">استفسار</option><option value="طلب آخر">طلب آخر</option></select></label>
+            <label>الخدمة (اختياري)<select id="request-service"><option value="">بدون تحديد خدمة</option></select></label>
+            <label>التفاصيل<textarea id="request-details" rows="3" required placeholder="اكتب تفاصيل الطلب…"></textarea></label>
+            <button class="btn primary" type="submit">إرسال الطلب</button><p id="request-message" class="message"></p>
+          </form>
+        </section>
+        <section class="panel pad">
+          <div class="section-heading compact"><div><h2>طلباتي</h2><p class="muted">حالة كل طلب أرسلته.</p></div></div>
+          <div id="my-requests" class="request-list"><p class="empty">لا توجد طلبات بعد.</p></div>
+        </section>
+      </div>
+      <section id="admin-panel" class="hidden admin-area">
+        <div class="section-heading"><div><span class="eyebrow">صلاحيات المسؤول</span><h2>إدارة الموقع</h2><p class="muted">إضافة الخدمات ومراجعة طلبات الأعضاء.</p></div></div>
+        <div class="admin-grid">
+          <form id="service-form" class="panel pad stack">
+            <h3>إضافة خدمة</h3>
+            <label>اسم الخدمة<input id="service-title" required placeholder="مثال: خدمة إيضاح"></label>
+            <div class="two-col"><label>التاريخ<input id="service-date" type="date" required></label><label>الميعاد<input id="service-time" type="time" required></label></div>
+            <label>المكان<input id="service-location" required placeholder="مكان الخدمة"></label>
+            <label>المكلّف (البريد الإلكتروني، اختياري)<input id="service-assignee" type="email" placeholder="member@example.com"></label>
+            <label>ملاحظات<textarea id="service-notes" rows="2" placeholder="ملاحظات إضافية"></textarea></label>
+            <button class="btn primary" type="submit">إضافة إلى الجدول</button><p id="service-message" class="message"></p>
+          </form>
+          <div class="panel pad">
+            <h3>طلبات الأعضاء</h3><div id="admin-requests" class="request-list"><p class="empty">جارٍ تحميل الطلبات…</p></div>
+          </div>
+        </div>
+      </section>
+    </section>
+    <footer>وسائل إيضاح <span>•</span> منصة تنظيم الخدمات</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
