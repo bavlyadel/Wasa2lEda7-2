@@ -1,5 +1,29 @@
 /* إضافات: تعديل الخدمات، أكتر من خادم، تكرار، تناول، تسجيل المواعيد، توزيع تلقائي، إشعارات، أرقام المسؤولين */
 (function(){
+// إضافة حقول (عدد الخدام / التكرار / جمعة التناول) داخل نموذج إضافة خدمة
+(function addFields(){
+  const notesLabel = document.querySelector('#service-notes')?.closest('label');
+  if(!notesLabel || document.getElementById('service-needed')) return;
+  const wrap=document.createElement('div'); wrap.className='two-col';
+  wrap.innerHTML=`<label>عدد الخدام المطلوب<input id="service-needed" type="number" min="1" value="1"></label><label>تتكرر كل (يوم، اتركه فاضي لو مرة واحدة)<input id="service-repeat" type="number" min="0" placeholder="7 = أسبوعي"></label>`;
+  notesLabel.before(wrap);
+  const commLabel=document.createElement('label'); commLabel.innerHTML='جمعة التناول (١-٤، اتركه فاضي لو مش جمعة تناول)<input id="service-comm" type="number" min="1" max="4">';
+  notesLabel.before(commLabel);
+  const form=document.getElementById('service-form');
+  form?.addEventListener('submit',async function(e){
+    e.stopImmediatePropagation(); e.preventDefault();
+    let assignee_id=null,assignee_name=null; const email=document.getElementById('service-assignee').value.trim();
+    if(email){const {data,error}=await db.rpc('lookup_member_by_email',{member_email:email});
+      if(error||!data||!data.length){message('service-message','لم يتم العثور على حساب بهذا البريد. تأكد أن العضو أنشأ حسابًا.',true);return;}
+      assignee_id=data[0].id;assignee_name=data[0].full_name||email;}
+    const payload={title:document.getElementById('service-title').value.trim(),service_date:document.getElementById('service-date').value,service_time:document.getElementById('service-time').value,location:document.getElementById('service-location').value.trim(),assignee_id,assignee_name,notes:document.getElementById('service-notes').value.trim()||null,created_by:currentUser.id,
+      needed:+document.getElementById('service-needed').value||1, repeat_days:+document.getElementById('service-repeat').value||null, communion_n:+document.getElementById('service-comm').value||null};
+    const {error}=await db.from('services').insert(payload);
+    if(error){message('service-message',error.message,true);return;}
+    form.reset(); document.getElementById('service-needed').value='1'; message('service-message','تمت إضافة الخدمة إلى الجدول.'); await refreshData();
+  }, true);
+})();
+
 const iso=d=>d.toLocaleDateString('sv'), E=escapeHtml, admin=()=>currentProfile&&currentProfile.role==='admin';
 const nextFri=()=>{const d=new Date();d.setDate(d.getDate()+(5-d.getDay()+7)%7);return iso(d)};
 let A=[],M=[],V=[];
