@@ -43,11 +43,17 @@ async function loadApp(user){
   currentProfile=profile||{id:user.id,full_name:user.user_metadata?.full_name||user.email,role:"member"};
   setView(true); $("user-label").textContent=currentProfile.full_name||user.email;
   $("greeting").textContent="أهلاً، "+(currentProfile.full_name||"بك");
-  const admin=currentProfile.role==="admin";$("role-badge").textContent=admin?"مسؤول":"عضو";
+  const admin=currentProfile.role==="admin";
+  const isStaff=admin||currentProfile.role==="server";
+  window.isStaff=isStaff;
+  $("role-badge").textContent=admin?"مسؤول":(currentProfile.role==="server"?"خادم":"عضو");
   $("admin-panel").classList.toggle("hidden",!admin);
+  const tableHeading=document.querySelector("#services-body").closest("section")?.previousElementSibling;
+  const tablePanel=$("services-body").closest(".table-panel");
+  tableHeading?.classList.toggle("hidden",!isStaff);
+  tablePanel?.classList.toggle("hidden",!isStaff);
   await refreshData();
 }
-async function refreshData(){
   if(!db||!currentUser)return;
   const {data:services,error}=await db.from("services").select("id,title,service_date,service_time,location,notes,assignee_id,assignee_name").order("service_date",{ascending:true});
   if(error){$("services-body").innerHTML=`<tr><td colspan="6" class="empty">تعذر تحميل الجدول: ${escapeHtml(error.message)}</td></tr>`;return;}
