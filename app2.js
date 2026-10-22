@@ -42,6 +42,8 @@ const notify=(ids,body)=>ids.length?db.from('notifications').insert(ids.map(user
 function panels(contacts,T){
   let box=$('x-panels');
   if(!box){box=document.createElement('div');box.id='x-panels';$('admin-panel').before(box)}
+  if(!window.isStaff){box.classList.add('hidden');box.innerHTML='';return}
+  box.classList.remove('hidden');
   const mine=V.find(x=>x.user_id===currentUser.id)||{}, svs=servicesCache.filter(s=>s.service_date==T);
   let h=`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2>
   <label>هتنزل؟<select id="av-c"><option value="1">نازل</option><option value="0">معذور</option></select></label>

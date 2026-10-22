@@ -43,8 +43,14 @@ async function loadApp(user){
   currentProfile=profile||{id:user.id,full_name:user.user_metadata?.full_name||user.email,role:"member"};
   setView(true); $("user-label").textContent=currentProfile.full_name||user.email;
   $("greeting").textContent="أهلاً، "+(currentProfile.full_name||"بك");
-  const admin=currentProfile.role==="admin";$("role-badge").textContent=admin?"مسؤول":"عضو";
+  const admin=currentProfile.role==="admin";
+  const isStaff=admin||currentProfile.role==="server";
+  window.isStaff=isStaff;
+  $("role-badge").textContent=admin?"مسؤول":(currentProfile.role==="server"?"خادم":"عضو");
   $("admin-panel").classList.toggle("hidden",!admin);
+  const tablePanel=$("services-body").closest(".table-panel");
+  tablePanel.classList.toggle("hidden",!isStaff);
+  tablePanel.previousElementSibling?.classList.toggle("hidden",!isStaff);
   await refreshData();
 }
 async function refreshData(){

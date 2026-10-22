@@ -5,9 +5,13 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null default '',
   email text,
-  role text not null default 'member' check (role in ('member','admin')),
+  role text not null default 'member' check (role in ('member','admin','server')),
   created_at timestamptz not null default now()
 );
+
+-- لو جدول profiles موجود بالفعل، السطرين دول بيحدّثوا القيد القديم عشان يقبل دور "خادم":
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role in ('member','admin','server'));
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public
@@ -104,3 +108,6 @@ create policy "admin delete requests" on public.service_requests for delete to a
 
 -- Add the first admin only AFTER creating an account and replacing the email below:
 -- update public.profiles set role = 'admin' where lower(email) = lower('YOUR_ADMIN_EMAIL');
+
+-- لترقية حساب لدرجة "خادم" (بعد ما يعمل حساب من الموقع)، استبدل البريد وشغّل:
+-- update public.profiles set role = 'server' where lower(email) = lower('SERVER_EMAIL');
