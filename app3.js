@@ -22,11 +22,21 @@ async function x3(){
   const open=await youth();
   tools=(await db.from('tools').select('*').order('name')).data||[];
   const sel=$('request-type');
+  const onType=()=>{const c=sel.value==='اعتذار عن طلب';$('x-tool').classList.toggle('hidden',sel.value!=='طلب أدوات');$('x-cancel').classList.toggle('hidden',!c);$('request-details').required=!c;};
   if(!$('x-tool')){
     sel.insertAdjacentHTML('beforeend','<option value="طلب أدوات">طلب أدوات</option>');
-    $('request-details').closest('label').insertAdjacentHTML('beforebegin','<div id="x-tool" class="two-col hidden"><label>الأداة<select id="t-id"></select></label><label>العدد<input id="t-q" type="number" min="1" value="1"></label></div>');
-    sel.onchange=()=>$('x-tool').classList.toggle('hidden',sel.value!=='طلب أدوات');
+    $('request-details').closest('label').insertAdjacentHTML('beforebegin','<div id="x-tool" class="two-col hidden"><label>الأداة<select id="t-id"></select></label><label>العدد<input id="t-q" type="number" min="1" value="1"></label></div><div id="x-cancel" class="hidden"><label>الطلب المراد إلغاؤه<select id="c-id"></select></label></div>');
+    sel.onchange=onType;
   }
+  const mem=!window.isStaff;
+  const oc=[...sel.options].find(o=>o.value==='اعتذار عن طلب');
+  if(mem&&!oc)sel.insertAdjacentHTML('beforeend','<option value="اعتذار عن طلب">اعتذار عن طلب</option>');
+  if(!mem&&oc)oc.remove();
+  [...sel.options].forEach(o=>{const h=mem&&(o.value==='تبديل خدمة'||o.value==='اعتذار عن خدمة');o.hidden=h;o.disabled=h});
+  if(sel.selectedOptions[0]?.disabled)sel.value=[...sel.options].find(o=>!o.disabled).value;
+  const pend=(await db.from('service_requests').select('id,request_type,details').eq('user_id',currentUser.id).eq('status','pending').order('created_at',{ascending:false})).data||[];
+  $('c-id').innerHTML=pend.map(r=>`<option value="${r.id}">${E(r.request_type)} — ${E((r.details||'').slice(0,40))}</option>`).join('')||'<option value="">لا توجد طلبات معلّقة</option>';
+  onType();
   $('t-id').innerHTML=tools.filter(t=>t.qty_available>0).map(t=>`<option value="${t.id}">${E(t.name)} (متاح ${t.qty_available})</option>`).join('')||'<option value="">لا يوجد متاح</option>';
   let box=$('x-p3');if(!box){box=document.createElement('div');box.id='x-p3';box.style.cssText='display:grid;gap:1rem;margin:1.2rem 0';$('admin-panel').before(box)}
   let h=`<section class="panel pad stack"><h2>شكوى أو اقتراح</h2><label>اكتب هنا<textarea id="cp-b" rows="3"></textarea></label><label class="chk"><input type="checkbox" id="cp-a"> إرسال بدون ذكر اسمي</label><button class="btn primary" id="cp-s">إرسال</button><p id="cp-m" class="message"></p></section>`;
@@ -55,7 +65,12 @@ async function x3(){
 // طلب الأدوات: بنعترض إرسال النموذج الأصلي ونضيف بيانات الأداة
 document.addEventListener('submit',async e=>{
   if(e.target.id!=='request-form')return; e.stopImmediatePropagation();e.preventDefault();
-  const type=$('request-type').value;let det=$('request-details').value.trim(),tid=null,q=null;
+  const type=$('request-type').value;
+  if(type==='اعتذار عن طلب'){const id=$('c-id').value;if(!id)return message('request-message','اختر الطلب المراد إلغاؤه.',true);
+    const r=await db.from('service_requests').delete().eq('id',id).select();
+    if(r.error||!r.data||!r.data.length)return message('request-message',r.error?r.error.message:'تعذر إلغاء الطلب.',true);
+    message('request-message','تم إلغاء الطلب.');refreshData();return}
+  let det=$('request-details').value.trim(),tid=null,q=null;
   if(type==='طلب أدوات'){tid=$('t-id').value;q=+$('t-q').value||1;const t=tools.find(x=>x.id==tid);
     if(!t)return message('request-message','اختر أداة متاحة.',true);if(q>t.qty_available)return message('request-message','العدد أكبر من المتاح.',true);
     det+=`\n[الأداة: ${t.name} × ${q}]`}
