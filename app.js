@@ -50,6 +50,9 @@ async function loadApp(user){
   $("admin-panel").classList.toggle("hidden",!admin);
   $("services-heading").classList.toggle("hidden",!isStaff);
   $("services-panel").classList.toggle("hidden",!isStaff);
+  $("stat-card-upcoming").classList.toggle("hidden",!isStaff);
+  $("stat-card-mine").classList.toggle("hidden",!isStaff);
+  $("stats").style.gridTemplateColumns=isStaff?"":"1fr";
   await refreshData();
 }
 async function refreshData(){

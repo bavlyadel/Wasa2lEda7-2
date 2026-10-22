@@ -30,8 +30,7 @@ async function x3(){
   }
   const mem=!window.isStaff;
   const oc=[...sel.options].find(o=>o.value==='اعتذار عن طلب');
-  if(mem&&!oc)sel.insertAdjacentHTML('beforeend','<option value="اعتذار عن طلب">اعتذار عن طلب</option>');
-  if(!mem&&oc)oc.remove();
+  if(!oc)sel.insertAdjacentHTML('beforeend','<option value="اعتذار عن طلب">اعتذار عن طلب</option>');
   [...sel.options].forEach(o=>{const h=mem&&(o.value==='تبديل خدمة'||o.value==='اعتذار عن خدمة');o.hidden=h;o.disabled=h});
   if(sel.selectedOptions[0]?.disabled)sel.value=[...sel.options].find(o=>!o.disabled).value;
   const pend=(await db.from('service_requests').select('id,request_type,details').eq('user_id',currentUser.id).eq('status','pending').order('created_at',{ascending:false})).data||[];
