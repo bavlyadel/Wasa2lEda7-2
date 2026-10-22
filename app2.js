@@ -66,24 +66,11 @@ const notify=(ids,body)=>ids.length?db.from('notifications').insert(ids.map(user
 function panels(contacts,T){
   let box=$('x-panels');
   if(!box){box=document.createElement('div');box.id='x-panels';$('admin-panel').before(box)}
-  const mine=V.find(x=>x.user_id===currentUser.id)||{}, svs=servicesCache.filter(s=>s.service_date==T);
-  let h=`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2>
-  <label>هتنزل؟<select id="av-c"><option value="1">نازل</option><option value="0">معذور</option></select></label>
-  <div class="two-col"><label>فاضي من<input id="av-f" type="time"></label><label>لحد<input id="av-t" type="time"></label></div>
-  <label>خدمة بترشحها<select id="av-s"><option value="">أي خدمة</option>${svs.map(s=>`<option value="${s.id}">${E(s.title)} — ${E((s.service_time||'').slice(0,5))}</option>`).join('')}</select></label>
-  <label>ملاحظة<input id="av-n"></label><button class="btn primary" id="av-save">حفظ</button><p id="av-m" class="message"></p></section>`;
-  h+=`<section class="panel pad"><h2>أرقام المسؤولين</h2>${contacts.map(c=>`<p>${E(c.name)}: <a href="tel:${E(c.phone)}">${E(c.phone)}</a> · <a href="https://wa.me/${E(c.phone.replace(/\D/g,''))}">واتساب</a>${admin()?` <button class="btn ghost" data-delc="${c.id}">حذف</button>`:''}</p>`).join('')||'<p class="empty">لا توجد أرقام.</p>'}
-  ${admin()?'<div class="two-col"><input id="c-n" placeholder="الاسم"><input id="c-p" placeholder="رقم التليفون"></div><button class="btn" id="c-add">إضافة رقم</button>':''}</section>`;
-  if(admin())h+=`<section class="panel pad"><h2>إدارة جدول ${dateText(T)}</h2><div class="row-btns"><button class="btn primary" id="auto">توزيع تلقائي (مسودة)</button><button class="btn" id="appr">اعتماد الجدول وإشعار الخدام</button></div>
-  <h3>المسجّلين (${V.length})</h3>${V.map(v=>`<p>${E(v.name)} — ${v.coming?`${(v.from_time||'').slice(0,5)} → ${(v.to_time||'').slice(0,5)}`:'معذور'} ${E(v.note||'')}</p>`).join('')||'<p class="empty">لسه محدش سجّل.</p>'}</section>`;
-  box.innerHTML=h;
-  $('av-c').value=mine.coming===false?'0':'1';$('av-f').value=(mine.from_time||'').slice(0,5);$('av-t').value=(mine.to_time||'').slice(0,5);$('av-s').value=mine.suggested_service||'';$('av-n').value=mine.note||'';
-  $('av-save').onclick=async()=>{const r=await db.from('availability').upsert({user_id:currentUser.id,name:currentProfile.full_name||currentUser.email,week_date:T,coming:$('av-c').value=='1',from_time:$('av-f').value||null,to_time:$('av-t').value||null,suggested_service:$('av-s').value||null,note:$('av-n').value||null},{onConflict:'user_id,week_date'});message('av-m',r.error?r.error.message:'تم الحفظ.',!!r.error)};
-  if(admin()){
-    $('c-add').onclick=async()=>{if($('c-n').value&&$('c-p').value){await db.from('contacts').insert({name:$('c-n').value,phone:$('c-p').value});refreshData()}};
-    box.querySelectorAll('[data-delc]').forEach(b=>b.onclick=async()=>{await db.from('contacts').delete().eq('id',b.dataset.delc);refreshData()});
-    $('auto').onclick=()=>auto(T,svs);$('appr').onclick=()=>approve(svs);
-  }
+ function panels(contacts,T){
+  let box=$('x-panels');
+  if(!box){box=document.createElement('div');box.id='x-panels';$('admin-panel').before(box)}
+  if(!window.isStaff){box.classList.add('hidden');box.innerHTML='';return}
+  box.classList.remove('hidden');
 }
 async function auto(T,svs){
   const ok=V.filter(v=>v.coming), load={}, busy={}, mins=t=>{const[h,m]=t.split(':');return h*60+ +m};
