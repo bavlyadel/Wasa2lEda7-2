@@ -1,0 +1,4 @@
+<!-- في index.html أضف السطر ده بعد <script src="app.js"></script> : -->
+<script src="app2.js"></script>
+<!-- أضف بعد app2.js -->
+<script src="app3.js"></script>
