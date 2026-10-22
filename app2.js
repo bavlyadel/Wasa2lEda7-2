@@ -1,29 +1,5 @@
 /* إضافات: تعديل الخدمات، أكتر من خادم، تكرار، تناول، تسجيل المواعيد، توزيع تلقائي، إشعارات، أرقام المسؤولين */
 (function(){
-// إضافة حقول (عدد الخدام / التكرار / جمعة التناول) داخل نموذج إضافة خدمة
-(function addFields(){
-  const notesLabel = document.querySelector('#service-notes')?.closest('label');
-  if(!notesLabel || document.getElementById('service-needed')) return;
-  const wrap=document.createElement('div'); wrap.className='two-col';
-  wrap.innerHTML=`<label>عدد الخدام المطلوب<input id="service-needed" type="number" min="1" value="1"></label><label>تتكرر كل (يوم، اتركه فاضي لو مرة واحدة)<input id="service-repeat" type="number" min="0" placeholder="7 = أسبوعي"></label>`;
-  notesLabel.before(wrap);
-  const commLabel=document.createElement('label'); commLabel.innerHTML='جمعة التناول (١-٤، اتركه فاضي لو مش جمعة تناول)<input id="service-comm" type="number" min="1" max="4">';
-  notesLabel.before(commLabel);
-  const form=document.getElementById('service-form');
-  form?.addEventListener('submit',async function(e){
-    e.stopImmediatePropagation(); e.preventDefault();
-    let assignee_id=null,assignee_name=null; const email=document.getElementById('service-assignee').value.trim();
-    if(email){const {data,error}=await db.rpc('lookup_member_by_email',{member_email:email});
-      if(error||!data||!data.length){message('service-message','لم يتم العثور على حساب بهذا البريد. تأكد أن العضو أنشأ حسابًا.',true);return;}
-      assignee_id=data[0].id;assignee_name=data[0].full_name||email;}
-    const payload={title:document.getElementById('service-title').value.trim(),service_date:document.getElementById('service-date').value,service_time:document.getElementById('service-time').value,location:document.getElementById('service-location').value.trim(),assignee_id,assignee_name,notes:document.getElementById('service-notes').value.trim()||null,created_by:currentUser.id,
-      needed:+document.getElementById('service-needed').value||1, repeat_days:+document.getElementById('service-repeat').value||null, communion_n:+document.getElementById('service-comm').value||null};
-    const {error}=await db.from('services').insert(payload);
-    if(error){message('service-message',error.message,true);return;}
-    form.reset(); document.getElementById('service-needed').value='1'; message('service-message','تمت إضافة الخدمة إلى الجدول.'); await refreshData();
-  }, true);
-})();
-
 const iso=d=>d.toLocaleDateString('sv'), E=escapeHtml, admin=()=>currentProfile&&currentProfile.role==='admin';
 const nextFri=()=>{const d=new Date();d.setDate(d.getDate()+(5-d.getDay()+7)%7);return iso(d)};
 let A=[],M=[],V=[];
@@ -66,11 +42,24 @@ const notify=(ids,body)=>ids.length?db.from('notifications').insert(ids.map(user
 function panels(contacts,T){
   let box=$('x-panels');
   if(!box){box=document.createElement('div');box.id='x-panels';$('admin-panel').before(box)}
- function panels(contacts,T){
-  let box=$('x-panels');
-  if(!box){box=document.createElement('div');box.id='x-panels';$('admin-panel').before(box)}
-  if(!window.isStaff){box.classList.add('hidden');box.innerHTML='';return}
-  box.classList.remove('hidden');
+  const mine=V.find(x=>x.user_id===currentUser.id)||{}, svs=servicesCache.filter(s=>s.service_date==T);
+  let h=`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2>
+  <label>هتنزل؟<select id="av-c"><option value="1">نازل</option><option value="0">معذور</option></select></label>
+  <div class="two-col"><label>فاضي من<input id="av-f" type="time"></label><label>لحد<input id="av-t" type="time"></label></div>
+  <label>خدمة بترشحها<select id="av-s"><option value="">أي خدمة</option>${svs.map(s=>`<option value="${s.id}">${E(s.title)} — ${E((s.service_time||'').slice(0,5))}</option>`).join('')}</select></label>
+  <label>ملاحظة<input id="av-n"></label><button class="btn primary" id="av-save">حفظ</button><p id="av-m" class="message"></p></section>`;
+  h+=`<section class="panel pad"><h2>أرقام المسؤولين</h2>${contacts.map(c=>`<p>${E(c.name)}: <a href="tel:${E(c.phone)}">${E(c.phone)}</a> · <a href="https://wa.me/${E(c.phone.replace(/\D/g,''))}">واتساب</a>${admin()?` <button class="btn ghost" data-delc="${c.id}">حذف</button>`:''}</p>`).join('')||'<p class="empty">لا توجد أرقام.</p>'}
+  ${admin()?'<div class="two-col"><input id="c-n" placeholder="الاسم"><input id="c-p" placeholder="رقم التليفون"></div><button class="btn" id="c-add">إضافة رقم</button>':''}</section>`;
+  if(admin())h+=`<section class="panel pad"><h2>إدارة جدول ${dateText(T)}</h2><div class="row-btns"><button class="btn primary" id="auto">توزيع تلقائي (مسودة)</button><button class="btn" id="appr">اعتماد الجدول وإشعار الخدام</button></div>
+  <h3>المسجّلين (${V.length})</h3>${V.map(v=>`<p>${E(v.name)} — ${v.coming?`${(v.from_time||'').slice(0,5)} → ${(v.to_time||'').slice(0,5)}`:'معذور'} ${E(v.note||'')}</p>`).join('')||'<p class="empty">لسه محدش سجّل.</p>'}</section>`;
+  box.innerHTML=h;
+  $('av-c').value=mine.coming===false?'0':'1';$('av-f').value=(mine.from_time||'').slice(0,5);$('av-t').value=(mine.to_time||'').slice(0,5);$('av-s').value=mine.suggested_service||'';$('av-n').value=mine.note||'';
+  $('av-save').onclick=async()=>{const r=await db.from('availability').upsert({user_id:currentUser.id,name:currentProfile.full_name||currentUser.email,week_date:T,coming:$('av-c').value=='1',from_time:$('av-f').value||null,to_time:$('av-t').value||null,suggested_service:$('av-s').value||null,note:$('av-n').value||null},{onConflict:'user_id,week_date'});message('av-m',r.error?r.error.message:'تم الحفظ.',!!r.error)};
+  if(admin()){
+    $('c-add').onclick=async()=>{if($('c-n').value&&$('c-p').value){await db.from('contacts').insert({name:$('c-n').value,phone:$('c-p').value});refreshData()}};
+    box.querySelectorAll('[data-delc]').forEach(b=>b.onclick=async()=>{await db.from('contacts').delete().eq('id',b.dataset.delc);refreshData()});
+    $('auto').onclick=()=>auto(T,svs);$('appr').onclick=()=>approve(svs);
+  }
 }
 async function auto(T,svs){
   const ok=V.filter(v=>v.coming), load={}, busy={}, mins=t=>{const[h,m]=t.split(':');return h*60+ +m};
@@ -119,3 +108,4 @@ function edit(id){
     d.close();refreshData();
   };
 }
+})();
