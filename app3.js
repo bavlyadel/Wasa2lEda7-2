@@ -1,5 +1,6 @@
 /* إضافات 2: الشكاوى، تقديم الشباب (قابل للإخفاء)، أدوات الخدمة */
 (function(){
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const E=escapeHtml, admin=()=>currentProfile&&currentProfile.role==='admin';
 let tools=[];
 async function youth(){
