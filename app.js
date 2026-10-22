@@ -48,9 +48,8 @@ async function loadApp(user){
   window.isStaff=isStaff;
   $("role-badge").textContent=admin?"مسؤول":(currentProfile.role==="server"?"خادم":"عضو");
   $("admin-panel").classList.toggle("hidden",!admin);
-  const tablePanel=$("services-body").closest(".table-panel");
-  tablePanel.classList.toggle("hidden",!isStaff);
-  tablePanel.previousElementSibling?.classList.toggle("hidden",!isStaff);
+  $("services-heading").classList.toggle("hidden",!isStaff);
+  $("services-panel").classList.toggle("hidden",!isStaff);
   await refreshData();
 }
 async function refreshData(){
