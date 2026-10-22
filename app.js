@@ -53,8 +53,6 @@ async function loadApp(user){
   tableHeading?.classList.toggle("hidden",!isStaff);
   tablePanel?.classList.toggle("hidden",!isStaff);
   await refreshData();
-}
-  if(!db||!currentUser)return;
   const {data:services,error}=await db.from("services").select("id,title,service_date,service_time,location,notes,assignee_id,assignee_name").order("service_date",{ascending:true});
   if(error){$("services-body").innerHTML=`<tr><td colspan="6" class="empty">تعذر تحميل الجدول: ${escapeHtml(error.message)}</td></tr>`;return;}
   servicesCache=services||[];
