@@ -119,4 +119,3 @@ function edit(id){
     d.close();refreshData();
   };
 }
-})();
