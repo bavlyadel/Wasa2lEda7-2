@@ -39,7 +39,7 @@ $("refresh").addEventListener("click",()=>refreshData());
 
 async function loadApp(user){
   currentUser=user;
-  const {data:profile,error}=await db.from("profiles").select("id,full_name,role").eq("id",user.id).maybeSingle();
+  const {data:profile,error}=await db.from("profiles").select("id,full_name,role,phone").eq("id",user.id).maybeSingle();
   if(error){console.error(error);return;}
   currentProfile=profile||{id:user.id,full_name:user.user_metadata?.full_name||user.email,role:"member"};
   setView(true); $("user-label").textContent=currentProfile.full_name||user.email;
@@ -54,7 +54,25 @@ async function loadApp(user){
   $("stat-card-upcoming").classList.toggle("hidden",!isStaff);
   $("stat-card-mine").classList.toggle("hidden",!isStaff);
   $("stats").style.gridTemplateColumns=isStaff?"":"1fr";
+  askPhone();
   await refreshData();
+}
+function askPhone(){
+  if(currentProfile.phone||document.getElementById("phone-dlg"))return;
+  const d=document.createElement("dialog");d.id="phone-dlg";
+  d.innerHTML=`<form class="stack" id="phone-form"><h3>أضف رقم موبايلك</h3><p class="muted">محتاجين رقمك عشان نقدر نتواصل معاك. هتسجله مرة واحدة بس.</p><label>رقم الموبايل<input id="phone-new" type="tel" inputmode="numeric" placeholder="01012345678" required></label><p id="phone-msg" class="message"></p><div class="row-btns"><button class="btn primary" type="submit">حفظ</button><button class="btn ghost" type="button" id="phone-out">تسجيل الخروج</button></div></form>`;
+  document.body.append(d);
+  d.addEventListener("cancel",e=>e.preventDefault());
+  d.querySelector("#phone-out").onclick=()=>{d.close();d.remove();db.auth.signOut();};
+  d.querySelector("#phone-form").onsubmit=async e=>{
+    e.preventDefault();
+    const phone=d.querySelector("#phone-new").value.trim().replace(/[\s-]/g,"");
+    if(!/^01[0125][0-9]{8}$/.test(phone)){message("phone-msg","اكتب رقم موبايل مصري صحيح (11 رقم).",true);return;}
+    const {error}=await db.from("profiles").update({phone}).eq("id",currentUser.id);
+    if(error){message("phone-msg",error.message,true);return;}
+    currentProfile.phone=phone;d.close();d.remove();
+  };
+  d.showModal();
 }
 async function refreshData(){
   if(!db||!currentUser)return;
