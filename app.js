@@ -9,7 +9,7 @@ const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function message(id, text, error=false){ const el=$(id); el.textContent=text; el.classList.toggle("error",error); }
 function setView(isIn){ $("auth-view").classList.toggle("hidden",isIn); $("app-view").classList.toggle("hidden",!isIn); $("logout").classList.toggle("hidden",!isIn); }
-function setAuthMode(mode){ authMode=mode; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===mode)); $("name-field").classList.toggle("hidden",mode!=="signup"); $("auth-submit").textContent=mode==="login"?"دخول":"إنشاء الحساب"; $("password").autocomplete=mode==="login"?"current-password":"new-password"; message("auth-message",""); }
+function setAuthMode(mode){ authMode=mode; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===mode)); $("name-field").classList.toggle("hidden",mode!=="signup");$("phone-field").classList.toggle("hidden",mode!=="signup"); $("auth-submit").textContent=mode==="login"?"دخول":"إنشاء الحساب"; $("password").autocomplete=mode==="login"?"current-password":"new-password"; message("auth-message",""); }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setAuthMode(b.dataset.tab)));
 function dateText(d){ if(!d)return "—"; try{return new Intl.DateTimeFormat("ar-EG",{year:"numeric",month:"short",day:"numeric"}).format(new Date(d+"T12:00:00"));}catch{return d;} }
 function statusText(s){return ({pending:"قيد المراجعة",approved:"تمت الموافقة",rejected:"مرفوض"})[s]||s;}
@@ -28,7 +28,8 @@ $("auth-form").addEventListener("submit",async e=>{
   try{
     if(authMode==="signup"){
       const full_name=$("full-name").value.trim(); if(!full_name) throw new Error("اكتب اسمك الكامل.");
-      const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name}}}); if(error)throw error;
+      const phone=$("phone").value.trim().replace(/[\s-]/g,"");if(!/^01[0125][0-9]{8}$/.test(phone)) throw new Error("اكتب رقم موبايل مصري صحيح (11 رقم).");
+      const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name,phone}}}); if(error)throw error;
       message("auth-message",data.session?"تم إنشاء الحساب.":"تم إنشاء الحساب. راجع بريدك لتأكيده قبل تسجيل الدخول.");
     }else{const {error}=await db.auth.signInWithPassword({email,password});if(error)throw error;message("auth-message","تم تسجيل الدخول.");}
   }catch(err){message("auth-message",err.message||"حدث خطأ، حاول مرة أخرى.",true);}finally{$("auth-submit").disabled=false;}
@@ -73,9 +74,9 @@ async function loadRequests(){
   $("stat-requests").textContent=(mine||[]).filter(r=>r.status==="pending").length;
   $("my-requests").innerHTML=mine?.length?mine.map(r=>`<article class="request-item"><div class="request-top"><span>${escapeHtml(r.request_type)}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}</p></article>`).join(""):'<p class="empty">لا توجد طلبات بعد.</p>';
   if(currentProfile.role==="admin"){
-    const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,profiles(full_name,email),services(title)").order("created_at",{ascending:false});
+    const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,profiles(full_name,email,phone),services(title)").order("created_at",{ascending:false});
     if(adminErr){$("admin-requests").innerHTML=`<p class="empty">${escapeHtml(adminErr.message)}</p>`;return;}
-    $("admin-requests").innerHTML=all?.length?all.map(r=>`<article class="request-item"><div class="request-top"><span>${escapeHtml(r.request_type)} · ${escapeHtml(r.profiles?.full_name||r.profiles?.email||"عضو")}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}</p><div class="request-controls">${r.status!=="approved"?`<button class="btn" data-request="${r.id}" data-status="approved">موافقة</button>`:""}${r.status!=="rejected"?`<button class="btn" data-request="${r.id}" data-status="rejected">رفض</button>`:""}${r.status!=="pending"?`<button class="btn ghost" data-request="${r.id}" data-status="pending">إعادة للانتظار</button>`:""}</div></article>`).join(""):'<p class="empty">لا توجد طلبات من الأعضاء.</p>';
+    $("admin-requests").innerHTML=all?.length?all.map(r=>`<article class="request-item"><div class="request-top"><span>${escapeHtml(r.request_type)} · ${escapeHtml(r.profiles?.full_name||r.profiles?.email||"عضو")}${r.profiles?.phone?" · "+escapeHtml(r.profiles.phone):""}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}</p><div class="request-controls">${r.status!=="approved"?`<button class="btn" data-request="${r.id}" data-status="approved">موافقة</button>`:""}${r.status!=="rejected"?`<button class="btn" data-request="${r.id}" data-status="rejected">رفض</button>`:""}${r.status!=="pending"?`<button class="btn ghost" data-request="${r.id}" data-status="pending">إعادة للانتظار</button>`:""}</div></article>`).join(""):'<p class="empty">لا توجد طلبات من الأعضاء.</p>';
     $("admin-requests").querySelectorAll("[data-request]").forEach(b=>b.addEventListener("click",async()=>{const {error}=await db.from("service_requests").update({status:b.dataset.status}).eq("id",b.dataset.request);if(error)alert(error.message);else await loadRequests();}));
   }
 }
