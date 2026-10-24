@@ -60,6 +60,7 @@ async function x3(){
   let box=$('x-p3');if(!box){box=document.createElement('div');box.id='x-p3';box.style.cssText='display:grid;gap:1rem;margin:1.2rem 0';$('admin-panel').before(box)}
   let h=`<section class="panel pad stack"><h2>شكوى أو اقتراح</h2><label>اكتب هنا<textarea id="cp-b" rows="3"></textarea></label><label class="chk"><input type="checkbox" id="cp-a"> إرسال بدون ذكر اسمي</label><button class="btn primary" id="cp-s">إرسال</button><p id="cp-m" class="message"></p></section>`;
   let cps=[],ys=[],reqs=[],photos=[],notes=[],urls={};
+  const delivered=r=>photos.some(p=>p.request_id===r.id&&p.phase==='after');
   if(isAdm){
     cps=(await db.from('complaints').select('*').order('created_at',{ascending:false})).data||[];
     ys=(await db.from('youth_applications').select('*').order('created_at',{ascending:false})).data||[];
@@ -70,8 +71,8 @@ async function x3(){
 
     const thumbs=(rid,ph)=>photos.filter(p=>p.request_id===rid&&p.phase===ph).map(p=>`<span><a href="${urls[p.path]||'#'}" target="_blank" rel="noopener"><img src="${urls[p.path]||''}" alt="" style="width:84px;height:84px;object-fit:cover;border-radius:8px;margin:2px"></a><button class="btn ghost" data-pd="${p.id}" data-pp="${E(p.path)}" style="padding:2px 6px" title="حذف الصورة">×</button></span>`).join('')||'<small class="muted">لا يوجد</small>';
     const nb=rid=>`<div class="stack" style="gap:6px">${notes.filter(n=>(n.request_id||'')===(rid||'')).map(n=>`<p style="margin:0">📝 ${E(n.body)} <button class="btn ghost" data-nd="${n.id}" style="padding:2px 8px">حذف</button></p>`).join('')}<div class="two-col"><input class="nt" placeholder="اكتب ملاحظة…"><button class="btn" data-na="${rid||''}">إضافة</button></div></div>`;
-    const hand=reqs.filter(r=>r.status==='approved'||photos.some(p=>p.request_id===r.id));
-    h+=`<section class="panel pad stack"><h2>استلام وتسليم الأدوات (${hand.length})</h2><p class="muted">صور الحالة قبل الاستلام وعند التسليم، بتظهر للمسؤولين فقط.</p>${hand.map(r=>`<article class="request-item"><div class="request-top"><span>${E(r.profiles?.full_name||'عضو')}${r.profiles?.phone?' · '+E(r.profiles.phone):''}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${E((r.tool_items||[]).map(i=>i.name+' × '+i.qty).join('، '))}${r.needed_at?'\nموعد الخدمة: '+E(new Date(r.needed_at).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'})):''}</p><b>قبل الاستلام</b><div>${thumbs(r.id,'before')}</div><b>عند التسليم</b><div>${thumbs(r.id,'after')}</div><b>ملاحظات</b>${nb(r.id)}</article>`).join('')||'<p class="empty">لا توجد أدوات مستلمة حاليًا.</p>'}</section>`;
+    const hand=reqs.filter(r=>r.status==='approved'||photos.some(p=>p.request_id===r.id)), doneN=hand.filter(delivered).length;
+    h+=`<section class="panel pad stack"><h2>استلام وتسليم الأدوات (${hand.length})</h2><p class="muted">صور الحالة قبل الاستلام وعند التسليم، بتظهر للمسؤولين فقط.</p>${doneN?`<div class="row-btns"><button class="btn ghost" id="hd-all">🗑 حذف كل اللي اتسلم (${doneN})</button></div>`:''}${hand.map(r=>`<article class="request-item"><div class="request-top"><span>${E(r.profiles?.full_name||'عضو')}${r.profiles?.phone?' · '+E(r.profiles.phone):''}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${E((r.tool_items||[]).map(i=>i.name+' × '+i.qty).join('، '))}${r.needed_at?'\nموعد الخدمة: '+E(new Date(r.needed_at).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'})):''}</p><b>قبل الاستلام</b><div>${thumbs(r.id,'before')}</div><b>عند التسليم</b><div>${thumbs(r.id,'after')}</div><div class="row-btns">${['before','after'].map(ph=>`<label class="btn" style="cursor:pointer">📷 رفع صورة ${ph==='before'?'قبل الاستلام':'عند التسليم'}<input type="file" accept="image/*" multiple hidden data-aph="${ph}" data-rid="${r.id}"></label>`).join('')}<span class="muted" data-apm></span></div><b>ملاحظات</b>${nb(r.id)}<div class="row-btns"><button class="btn ghost" data-hd="${r.id}">🗑 ${delivered(r)?'حذف (تم الاستلام والتسليم)':'حذف السجل'}</button></div></article>`).join('')||'<p class="empty">لا توجد أدوات مستلمة حاليًا.</p>'}</section>`;
     h+=`<section class="panel pad stack"><h2>ملاحظات المسؤولين</h2>${nb('')}</section>`;
 
     const sum={good:0,maintenance:0,broken:0};tools.forEach(t=>{sum[t.condition||'good']++});
@@ -91,6 +92,17 @@ async function x3(){
   box.querySelectorAll('[data-cx]').forEach(b=>b.onclick=()=>go(db.from('complaints').delete().eq('id',b.dataset.cx)));
   box.querySelectorAll('[data-yx]').forEach(b=>b.onclick=()=>go(db.from('youth_applications').delete().eq('id',b.dataset.yx)));
   $('y-tg').onclick=()=>go(db.from('site_settings').upsert({key:'youth_open',value:String(!open)}));
+  // حذف سجلات الاستلام والتسليم: لو الأدوات اتسلمت (فيه صورة تسليم) بترجع للمخزن
+  const restore=async list=>{for(const r of list)for(const i of (r.tool_items||[])){const t=tools.find(x=>x.id===i.id);if(!t)continue;t.qty_available=Math.min(t.qty_total,t.qty_available+(+i.qty||1));await db.from('tools').update({qty_available:t.qty_available}).eq('id',t.id)}};
+  box.querySelectorAll('[data-hd]').forEach(b=>b.onclick=async()=>{
+    const r=reqs.find(x=>x.id===b.dataset.hd);if(!r)return;const dv=delivered(r);
+    if(!confirm(dv?'حذف السجل ده نهائيًا مع صوره وملاحظاته؟ الأدوات هترجع للمخزن.':'مفيش صورة تسليم للطلب ده. تحذفه نهائيًا من غير ما ترجّع الأدوات للمخزن؟'))return;
+    if(dv)await restore([r]);await deleteRequests([r.id]);refreshData()});
+  box.querySelectorAll('[data-aph]').forEach(inp=>inp.onchange=()=>upload(inp.dataset.rid,inp.dataset.aph,[...inp.files],inp.closest('article').querySelector('[data-apm]')));
+  $('hd-all')?.addEventListener('click',async()=>{
+    const list=reqs.filter(r=>(r.status==='approved'||photos.some(p=>p.request_id===r.id))&&delivered(r));
+    if(!list.length||!confirm(`حذف ${list.length} سجل تم استلامه وتسليمه نهائيًا مع صوره وملاحظاته؟ الأدوات هترجع للمخزن.`))return;
+    await restore(list);await deleteRequests(list.map(r=>r.id));refreshData()});
   box.querySelectorAll('[data-na]').forEach(b=>b.onclick=()=>{const v=b.parentElement.querySelector('.nt').value.trim();if(v)go(db.from('request_notes').insert({request_id:b.dataset.na||null,body:v}))});
   box.querySelectorAll('[data-nd]').forEach(b=>b.onclick=()=>go(db.from('request_notes').delete().eq('id',b.dataset.nd)));
   box.querySelectorAll('[data-pd]').forEach(b=>b.onclick=()=>confirm('حذف الصورة؟')&&go((async()=>{await db.storage.from('tool-photos').remove([b.dataset.pp]);return db.from('request_photos').delete().eq('id',b.dataset.pd)})()));
@@ -112,10 +124,27 @@ async function upload(rid,ph,files,pm){
     }catch(err){pm.textContent='فشل الرفع: '+(err.message||err);return}
   }
   pm.textContent=`تم رفع ${ok} صورة وبعتت للمسؤولين.`;
-  setTimeout(()=>loadRequests(),1500);
+  setTimeout(()=>admin()?refreshData():loadRequests(),1500);
+}
+async function adminPhotos(){
+  const items=[...document.querySelectorAll('#admin-requests .request-item[data-tool="1"]')];
+  if(!items.length)return;
+  const ph=await db.from('request_photos').select('*').order('created_at');
+  if(ph.error||!ph.data||!ph.data.length)return;
+  const s=await db.storage.from('tool-photos').createSignedUrls(ph.data.map(p=>p.path),3600),urls={};
+  (s.data||[]).forEach(x=>{if(x.signedUrl)urls[x.path]=x.signedUrl});
+  items.forEach(it=>{
+    if(it.querySelector('.adm-photos'))return;
+    const mine=ph.data.filter(p=>p.request_id===it.dataset.rid);if(!mine.length)return;
+    const th=k=>mine.filter(p=>p.phase===k).map(p=>urls[p.path]?`<a href="${urls[p.path]}" target="_blank" rel="noopener"><img src="${urls[p.path]}" alt="" style="width:84px;height:84px;object-fit:cover;border-radius:8px;margin:2px"></a>`:'<small class="muted">تعذر عرض الصورة</small>').join('')||'<small class="muted">لا يوجد</small>';
+    const d=document.createElement('div');d.className='adm-photos';
+    d.innerHTML=`<b>📷 قبل الاستلام</b><div>${th('before')}</div><b>📷 عند التسليم</b><div>${th('after')}</div>`;
+    const c=it.querySelector('.request-controls');c?it.insertBefore(d,c):it.append(d);
+  });
 }
 window.onRequestsRendered=async function(){
   if(!db||!currentUser)return;
+  if(admin())adminPhotos();
   const items=[...document.querySelectorAll('#my-requests .request-item[data-tool="1"][data-status="approved"]')];
   if(!items.length)return;
   const rows=(await db.from('request_photos').select('request_id,phase').eq('user_id',currentUser.id)).data||[];
