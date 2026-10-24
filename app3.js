@@ -120,8 +120,9 @@ window.onRequestsRendered=async function(){
   if(!items.length)return;
   const rows=(await db.from('request_photos').select('request_id,phase').eq('user_id',currentUser.id)).data||[];
   items.forEach(it=>{
+    if(it.querySelector('.photo-ctl'))return; // الدالة ممكن تشتغل مرتين مع بعض: ما نكررش الأزرار
     const rid=it.dataset.rid,cnt=ph=>rows.filter(r=>r.request_id===rid&&r.phase===ph).length;
-    const box=document.createElement('div');box.className='row-btns';
+    const box=document.createElement('div');box.className='row-btns photo-ctl';
     box.innerHTML=['before','after'].map(ph=>`<label class="btn" style="cursor:pointer">${ph==='before'?'📷 صورة قبل الاستلام':'📷 صورة عند التسليم'} (${cnt(ph)})<input type="file" accept="image/*" capture="environment" multiple hidden data-ph="${ph}"></label>`).join('')+'<span class="muted" data-pm></span>';
     it.append(box);
     box.querySelectorAll('input[type=file]').forEach(inp=>inp.onchange=()=>upload(rid,inp.dataset.ph,[...inp.files],box.querySelector('[data-pm]')));
