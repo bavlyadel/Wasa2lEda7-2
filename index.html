@@ -33,6 +33,7 @@
           <label id="name-field" class="hidden">الاسم الكامل<input id="full-name" type="text" placeholder="اكتب اسمك"></label>
           <label id="phone-field" class="hidden">رقم الموبايل<input id="phone" type="tel" inputmode="numeric" placeholder="01012345678" autocomplete="tel"></label>
           <button id="auth-submit" class="btn primary wide" type="submit">دخول</button>
+          <button id="forgot" class="btn ghost wide" type="button">نسيت كلمة السر؟</button>
           <p id="auth-message" class="message" aria-live="polite"></p>
         </form>
         <p class="fineprint">إنشاء الحساب لا يمنح صلاحيات الإدارة. مسؤول الموقع فقط يمكنه اعتماد صلاحيات المسؤول.</p>
@@ -47,7 +48,7 @@
         <article class="stat panel"><span>طلباتي المفتوحة</span><strong id="stat-requests">—</strong><small>بانتظار المراجعة</small></article>
       </div>
       <div id="services-heading" class="section-heading"><div><h2>جدول الخدمات</h2><p class="muted">الخدمات المنشورة للأعضاء المسجلين.</p></div><button id="refresh" class="btn ghost">تحديث الجدول ↻</button></div>
-      <div id="services-panel" class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>الخدمة</th><th>التاريخ</th><th>الميعاد</th><th>المكان</th><th>المكلّف</th><th>ملاحظات</th></tr></thead><tbody id="services-body"><tr><td colspan="6" class="empty">جارٍ تحميل البيانات…</td></tr></tbody></table></div></div>
+      <div id="services-panel" class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>الخدمة</th><th>التاريخ</th><th>الميعاد</th><th>المكان</th><th>المكلّف</th><th>ملاحظات</th><th>جمعة التناول</th></tr></thead><tbody id="services-body"><tr><td colspan="7" class="empty">جارٍ تحميل البيانات…</td></tr></tbody></table></div></div>
       <div class="member-grid">
         <section class="panel pad">
           <div class="section-heading compact"><div><h2>طلب جديد</h2><p class="muted">أرسل طلبًا للمسؤول لمراجعته.</p></div></div>
@@ -83,8 +84,8 @@
     </section>
     <footer>وسائل إيضاح <span>•</span> منصة تنظيم الخدمات</footer>
   </main>
-  <script src="app.js?v=2"></script>
-  <script src="app2.js?v=2"></script>
-  <script src="app3.js?v=2"></script>
+  <script src="app.js?v=4"></script>
+  <script src="app2.js?v=4"></script>
+  <script src="app3.js?v=4"></script>
 </body>
 </html>

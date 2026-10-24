@@ -19,17 +19,18 @@ async function extras(){
     db.from('notifications').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(20),
     db.from('availability').select('*').eq('week_date',T)]);
   A=a.data||[];V=v.data||[];
-  if(admin()){M=(await db.from('profiles').select('id,full_name,email')).data||[];}
+  if(admin()){M=(await db.from('profiles').select('id,full_name,email,role').in('role',['server','admin'])).data||[];}
   table();bell(n.data||[]);panels(c.data||[],T);
 }
 function table(){
   $('stat-mine').textContent=A.filter(x=>x.user_id===currentUser.id).length;
+  const hr=document.querySelector('#services-panel thead tr');if(hr&&hr.children.length<7)hr.insertAdjacentHTML('beforeend','<th>جمعة التناول</th>');
   if(!servicesCache.length)return;
   $('services-body').innerHTML=servicesCache.map(s=>{
     const names=A.filter(x=>x.service_id==s.id).map(x=>E(x.name)+(x.status=='draft'?' <small>(مسودة)</small>':'')).join('، ')||'—';
     const o=Math.ceil(+s.service_date.slice(8,10)/7);
-    const comm=s.communion_n?(s.communion_n==o?' <span class="status approved">تناول</span>':` <small>(جمعة التناول ${s.communion_n})</small>`):'';
-    return `<tr><td><strong>${E(s.title)}</strong>${comm}</td><td>${dateText(s.service_date)}</td><td>${E((s.service_time||'').slice(0,5)||'—')}</td><td>${E(s.location)}</td><td>${names}</td><td>${E(s.notes||'—')}${admin()?` <button class="btn ghost" data-edit="${s.id}">تعديل</button>`:''}</td></tr>`}).join('');
+    const comm=s.communion_n&&s.communion_n==o?' <span class="status approved">تناول</span>':'';
+    return `<tr><td><strong>${E(s.title)}</strong>${comm}</td><td>${dateText(s.service_date)}</td><td>${E((s.service_time||'').slice(0,5)||'—')}</td><td>${E(s.location)}</td><td>${names}</td><td>${E(s.notes||'—')}${admin()?` <button class="btn ghost" data-edit="${s.id}">تعديل</button>`:''}</td><td>${E(communionText(s))}</td></tr>`}).join('');
   document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(b.dataset.edit));
 }
 function bell(n){

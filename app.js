@@ -9,7 +9,7 @@ const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function message(id, text, error=false){ const el=$(id); el.textContent=text; el.classList.toggle("error",error); }
 function setView(isIn){ $("auth-view").classList.toggle("hidden",isIn); $("app-view").classList.toggle("hidden",!isIn); $("logout").classList.toggle("hidden",!isIn); }
-function setAuthMode(mode){ authMode=mode; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===mode)); $("name-field").classList.toggle("hidden",mode!=="signup");$("phone-field").classList.toggle("hidden",mode!=="signup"); $("auth-submit").textContent=mode==="login"?"دخول":"إنشاء الحساب"; $("password").autocomplete=mode==="login"?"current-password":"new-password"; message("auth-message",""); }
+function setAuthMode(mode){ authMode=mode; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===mode)); $("name-field").classList.toggle("hidden",mode!=="signup");$("phone-field").classList.toggle("hidden",mode!=="signup");$("forgot").classList.toggle("hidden",mode!=="login"); $("auth-submit").textContent=mode==="login"?"دخول":"إنشاء الحساب"; $("password").autocomplete=mode==="login"?"current-password":"new-password"; message("auth-message",""); }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setAuthMode(b.dataset.tab)));
 function dateText(d){ if(!d)return "—"; try{return new Intl.DateTimeFormat("ar-EG",{year:"numeric",month:"short",day:"numeric"}).format(new Date(d+"T12:00:00"));}catch{return d;} }
 function statusText(s){return ({pending:"قيد المراجعة",approved:"تمت الموافقة",rejected:"مرفوض"})[s]||s;}
@@ -19,7 +19,7 @@ async function init(){
   if(!configured){$("setup-notice").classList.remove("hidden");message("auth-message","الموقع جاهز للربط بقاعدة البيانات. أكمل خطوات README.",true);return;}
   const {data:{session}}=await db.auth.getSession();
   if(session) await loadApp(session.user);
-  db.auth.onAuthStateChange(async (_event,session)=>{if(session) await loadApp(session.user); else {currentUser=null;currentProfile=null;setView(false);$("user-label").textContent="";}});
+  db.auth.onAuthStateChange(async (event,session)=>{if(session) await loadApp(session.user); else {currentUser=null;currentProfile=null;setView(false);$("user-label").textContent="";} if(event==="PASSWORD_RECOVERY") askNewPassword();});
 }
 $("auth-form").addEventListener("submit",async e=>{
   e.preventDefault(); if(!db){message("auth-message","أكمل إعداد Supabase أولًا حسب README.",true);return;}
@@ -37,6 +37,44 @@ $("auth-form").addEventListener("submit",async e=>{
 $("logout").addEventListener("click",async()=>{if(db)await db.auth.signOut();});
 $("refresh").addEventListener("click",()=>refreshData());
 
+$("forgot").addEventListener("click",async()=>{
+  if(!db)return;const email=$("email").value.trim();
+  if(!email){message("auth-message","اكتب بريدك الإلكتروني في الخانة فوق الأول، وبعدين اضغط «نسيت كلمة السر؟».",true);return;}
+  const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  message("auth-message",error?error.message:"لو الإيميل ده مسجّل هيوصلك رابط لتغيير كلمة السر. راجع الـ Spam كمان.",!!error);
+});
+function askNewPassword(){
+  if(document.getElementById("pw-dlg"))return;
+  const d=document.createElement("dialog");d.id="pw-dlg";
+  d.innerHTML=`<form class="stack" id="pw-form"><h3>اكتب كلمة سر جديدة</h3><label>كلمة السر الجديدة<input id="pw-new" type="password" minlength="8" required autocomplete="new-password" placeholder="٨ أحرف على الأقل"></label><p id="pw-msg" class="message"></p><div class="row-btns"><button class="btn primary" type="submit">حفظ</button><button class="btn ghost" type="button" id="pw-x">إلغاء</button></div></form>`;
+  document.body.append(d);
+  d.querySelector("#pw-x").onclick=()=>{d.close();d.remove();};
+  d.querySelector("#pw-form").onsubmit=async e=>{
+    e.preventDefault();
+    const {error}=await db.auth.updateUser({password:d.querySelector("#pw-new").value});
+    if(error){message("pw-msg",error.message,true);return;}
+    message("pw-msg","تم تغيير كلمة السر.");setTimeout(()=>{d.close();d.remove();},1200);
+  };
+  d.showModal();
+}
+function communionText(s){
+  if(!s.communion_n)return "—";
+  const o=Math.ceil(+String(s.service_date).slice(8,10)/7);
+  return s.communion_n==o?"✔ جمعة التناول":`جمعة التناول: الجمعة ${s.communion_n} من الشهر`;
+}
+function reqExtra(r){
+  let t="";
+  if(r.needed_at)t+=`\nموعد الخدمة: ${new Date(r.needed_at).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})}`;
+  if(r.reject_reason)t+=`\n⚠️ ${r.reject_reason}`;
+  return t;
+}
+async function deleteRequests(ids){
+  if(!ids.length)return;
+  const {data:ph}=await db.from("request_photos").select("path").in("request_id",ids);
+  if(ph&&ph.length)await db.storage.from("tool-photos").remove(ph.map(p=>p.path));
+  const {error}=await db.from("service_requests").delete().in("id",ids);
+  if(error)alert(error.message);
+}
 async function loadApp(user){
   currentUser=user;
   const {data:profile,error}=await db.from("profiles").select("id,full_name,role,phone").eq("id",user.id).maybeSingle();
@@ -76,27 +114,30 @@ function askPhone(){
 }
 async function refreshData(){
   if(!db||!currentUser)return;
-  const {data:services,error}=await db.from("services").select("id,title,service_date,service_time,location,notes,assignee_id,assignee_name").order("service_date",{ascending:true});
-  if(error){$("services-body").innerHTML=`<tr><td colspan="6" class="empty">تعذر تحميل الجدول: ${escapeHtml(error.message)}</td></tr>`;return;}
+  const {data:services,error}=await db.from("services").select("*").order("service_date",{ascending:true});
+  if(error){$("services-body").innerHTML=`<tr><td colspan="7" class="empty">تعذر تحميل الجدول: ${escapeHtml(error.message)}</td></tr>`;return;}
   servicesCache=services||[];
   const upcoming=servicesCache.filter(s=>s.service_date>=new Date().toISOString().slice(0,10));
   $("stat-upcoming").textContent=upcoming.length;
   $("stat-mine").textContent=servicesCache.filter(s=>s.assignee_id===currentUser.id).length;
-  $("services-body").innerHTML=servicesCache.length?servicesCache.map(s=>`<tr><td><strong>${escapeHtml(s.title)}</strong></td><td>${dateText(s.service_date)}</td><td>${escapeHtml((s.service_time||"").slice(0,5)||"—")}</td><td>${escapeHtml(s.location)}</td><td>${escapeHtml(s.assignee_name||"—")}</td><td>${escapeHtml(s.notes||"—")}</td></tr>`).join(""):`<tr><td colspan="6" class="empty">لا توجد خدمات مضافة حتى الآن.</td></tr>`;
+  $("services-body").innerHTML=servicesCache.length?servicesCache.map(s=>`<tr><td><strong>${escapeHtml(s.title)}</strong></td><td>${dateText(s.service_date)}</td><td>${escapeHtml((s.service_time||"").slice(0,5)||"—")}</td><td>${escapeHtml(s.location)}</td><td>${escapeHtml(s.assignee_name||"—")}</td><td>${escapeHtml(s.notes||"—")}</td><td>${escapeHtml(communionText(s))}</td></tr>`).join(""):`<tr><td colspan="7" class="empty">لا توجد خدمات مضافة حتى الآن.</td></tr>`;
   $("request-service").innerHTML='<option value="">بدون تحديد خدمة</option>'+servicesCache.map(s=>`<option value="${s.id}">${escapeHtml(s.title)} — ${dateText(s.service_date)}</option>`).join("");
   await loadRequests();
 }
 async function loadRequests(){
-  const {data:mine,error}=await db.from("service_requests").select("id,request_type,details,status,created_at,service_id,services(title)").eq("user_id",currentUser.id).order("created_at",{ascending:false});
+  const {data:mine,error}=await db.from("service_requests").select("id,request_type,details,status,created_at,service_id,tool_items,needed_at,reject_reason,services(title)").eq("user_id",currentUser.id).order("created_at",{ascending:false});
   if(error){console.error(error);return;}
   $("stat-requests").textContent=(mine||[]).filter(r=>r.status==="pending").length;
-  $("my-requests").innerHTML=mine?.length?mine.map(r=>`<article class="request-item"><div class="request-top"><span>${escapeHtml(r.request_type)}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}</p></article>`).join(""):'<p class="empty">لا توجد طلبات بعد.</p>';
+  $("my-requests").innerHTML=mine?.length?mine.map(r=>`<article class="request-item" data-rid="${r.id}" data-tool="${r.tool_items?1:0}" data-status="${r.status}"><div class="request-top"><span>${escapeHtml(r.request_type)}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}${escapeHtml(reqExtra(r))}</p></article>`).join(""):'<p class="empty">لا توجد طلبات بعد.</p>';
   if(currentProfile.role==="admin"){
-    const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,profiles(full_name,email,phone),services(title)").order("created_at",{ascending:false});
+    const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,tool_items,needed_at,reject_reason,profiles(full_name,email,phone),services(title)").order("created_at",{ascending:false});
     if(adminErr){$("admin-requests").innerHTML=`<p class="empty">${escapeHtml(adminErr.message)}</p>`;return;}
-    $("admin-requests").innerHTML=all?.length?all.map(r=>`<article class="request-item"><div class="request-top"><span>${escapeHtml(r.request_type)} · ${escapeHtml(r.profiles?.full_name||r.profiles?.email||"عضو")}${r.profiles?.phone?" · "+escapeHtml(r.profiles.phone):""}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}</p><div class="request-controls">${r.status!=="approved"?`<button class="btn" data-request="${r.id}" data-status="approved">موافقة</button>`:""}${r.status!=="rejected"?`<button class="btn" data-request="${r.id}" data-status="rejected">رفض</button>`:""}${r.status!=="pending"?`<button class="btn ghost" data-request="${r.id}" data-status="pending">إعادة للانتظار</button>`:""}</div></article>`).join(""):'<p class="empty">لا توجد طلبات من الأعضاء.</p>';
+    $("admin-requests").innerHTML=(all?.some(r=>r.status!=="pending")?`<div class="row-btns"><button class="btn ghost" id="del-done">حذف كل الطلبات المنتهية (الموافق عليها والمرفوضة)</button></div>`:"")+(all?.length?all.map(r=>`<article class="request-item"><div class="request-top"><span>${escapeHtml(r.request_type)} · ${escapeHtml(r.profiles?.full_name||r.profiles?.email||"عضو")}${r.profiles?.phone?" · "+escapeHtml(r.profiles.phone):""}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}${escapeHtml(reqExtra(r))}</p><div class="request-controls">${r.status!=="approved"?`<button class="btn" data-request="${r.id}" data-status="approved">موافقة</button>`:""}${r.status!=="rejected"?`<button class="btn" data-request="${r.id}" data-status="rejected">رفض</button>`:""}${r.status!=="pending"?`<button class="btn ghost" data-request="${r.id}" data-status="pending">إعادة للانتظار</button>`:""}<button class="btn ghost" data-del="${r.id}">حذف</button></div></article>`).join(""):'<p class="empty">لا توجد طلبات من الأعضاء.</p>');
+    $("admin-requests").querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("حذف الطلب نهائيًا؟"))return;await deleteRequests([b.dataset.del]);await refreshData();}));
+    $("del-done")?.addEventListener("click",async()=>{const ids=all.filter(r=>r.status!=="pending").map(r=>r.id);if(!confirm(`حذف ${ids.length} طلب منتهي نهائيًا؟`))return;await deleteRequests(ids);await refreshData();});
     $("admin-requests").querySelectorAll("[data-request]").forEach(b=>b.addEventListener("click",async()=>{const {error}=await db.from("service_requests").update({status:b.dataset.status}).eq("id",b.dataset.request);if(error)alert(error.message);else await loadRequests();}));
   }
+  if(window.onRequestsRendered)window.onRequestsRendered();
 }
 $("request-form").addEventListener("submit",async e=>{
   e.preventDefault();if(!db)return;const payload={user_id:currentUser.id,request_type:$("request-type").value,service_id:$("request-service").value||null,details:$("request-details").value.trim()};
@@ -105,7 +146,7 @@ $("request-form").addEventListener("submit",async e=>{
 $("service-form").addEventListener("submit",async e=>{
   e.preventDefault();if(!db)return;
   let assignee_id=null,assignee_name=null;const email=$("service-assignee").value.trim();
-  if(email){const {data,error}=await db.rpc("lookup_member_by_email",{member_email:email});if(error||!data||!data.length){message("service-message","لم يتم العثور على حساب بهذا البريد. تأكد أن العضو أنشأ حسابًا.",true);return;}assignee_id=data[0].id;assignee_name=data[0].full_name||email;}
+  if(email){const {data,error}=await db.rpc("lookup_member_by_email",{member_email:email});if(error||!data||!data.length){message("service-message","لم يتم العثور على حساب بهذا البريد. لازم يكون الحساب موجود بدور خادم أو مسؤول.",true);return;}assignee_id=data[0].id;assignee_name=data[0].full_name||email;}
   const payload={title:$("service-title").value.trim(),service_date:$("service-date").value,service_time:$("service-time").value,location:$("service-location").value.trim(),assignee_id,assignee_name,notes:$("service-notes").value.trim()||null,created_by:currentUser.id};
   const {error}=await db.from("services").insert(payload);if(error){message("service-message",error.message,true);return;}
   $("service-form").reset();message("service-message","تمت إضافة الخدمة إلى الجدول.");await refreshData();
