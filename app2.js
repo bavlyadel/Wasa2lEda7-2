@@ -1,7 +1,10 @@
 /* إضافات: تعديل الخدمات، أكتر من خادم، تكرار، تناول، تسجيل المواعيد، توزيع تلقائي، إشعارات، أرقام المسؤولين */
 (function(){
 const iso=d=>d.toLocaleDateString('sv'), E=escapeHtml, admin=()=>currentProfile&&currentProfile.role==='admin';
-const nextFri=()=>{const d=new Date();d.setDate(d.getDate()+(5-d.getDay()+7)%7);return iso(d)};
+// توقيت القاهرة: الجمعة الجاية، وباب التسجيل بيتقفل الأربع الساعة 12 ظهرًا
+const cairo=()=>{const f=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',weekday:'short'}).formatToParts(new Date());const g=t=>f.find(x=>x.type===t).value;return{y:+g('year'),m:+g('month'),d:+g('day'),h:+g('hour'),dow:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(g('weekday'))}};
+const nextFri=()=>{const c=cairo(),k=(5-c.dow+7)%7;return new Date(Date.UTC(c.y,c.m-1,c.d+k)).toISOString().slice(0,10)};
+const regOpen=()=>{const c=cairo(),k=(5-c.dow+7)%7;return k>2||(k===2&&c.h<12)};
 let A=[],M=[],V=[];
 // اللوجوهات
 const bm=document.querySelector('.brand-mark');
@@ -44,18 +47,20 @@ function panels(contacts,T){
   let box=$('x-panels');
   if(!box){box=document.createElement('div');box.id='x-panels';$('admin-panel').before(box)}
   const mine=V.find(x=>x.user_id===currentUser.id)||{}, svs=servicesCache.filter(s=>s.service_date==T);
+  const open=regOpen()||admin();
+  const closedHtml=`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2><p class="message error" style="font-size:14px;line-height:1.9">اتأخرت عن الحد المسموح للتسجيل في جدول الجمعة (آخر ميعاد الأربع الساعة 12 ظهرًا). وتتعوّض الجمعة اللي جاية بإذن المسيح 🙏</p><p class="muted">${mine.user_id?(mine.coming?'تسجيلك الحالي: نازل':'تسجيلك الحالي: معذور'):'ما سجّلتش للجمعة دي.'}</p></section>`;
   let h='';
-  if(window.isStaff)h+=`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2>
+  if(window.isStaff)h+=open?`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2><p class="muted">آخر ميعاد للتسجيل: الأربع الساعة 12 ظهرًا.</p>
   <label>هتنزل؟<select id="av-c"><option value="1">نازل</option><option value="0">معذور</option></select></label>
   <div id="av-extra" class="stack"><div class="two-col"><label>فاضي من<input id="av-f" type="time"></label><label>لحد<input id="av-t" type="time"></label></div>
   <label>خدمة بترشحها<select id="av-s"><option value="">أي خدمة</option>${svs.map(s=>`<option value="${s.id}">${E(s.title)} — ${E((s.service_time||'').slice(0,5))}</option>`).join('')}</select></label></div>
-  <label>ملاحظة<input id="av-n"></label><button class="btn primary" id="av-save">حفظ</button><p id="av-m" class="message"></p></section>`;
+  <label>ملاحظة<input id="av-n"></label><button class="btn primary" id="av-save">حفظ</button><p id="av-m" class="message"></p></section>`:closedHtml;
   h+=`<section class="panel pad"><h2>أرقام المسؤولين</h2>${contacts.map(c=>`<p>${E(c.name)}: <a href="tel:${E(c.phone)}">${E(c.phone)}</a> · <a href="https://wa.me/${E(c.phone.replace(/\D/g,''))}">واتساب</a>${admin()?` <button class="btn ghost" data-delc="${c.id}">حذف</button>`:''}</p>`).join('')||'<p class="empty">لا توجد أرقام.</p>'}
   ${admin()?'<div class="two-col"><input id="c-n" placeholder="الاسم"><input id="c-p" placeholder="رقم التليفون"></div><button class="btn" id="c-add">إضافة رقم</button>':''}</section>`;
   if(admin())h+=`<section class="panel pad"><h2>إدارة جدول ${dateText(T)}</h2><div class="row-btns"><button class="btn primary" id="auto">توزيع تلقائي (مسودة)</button><button class="btn" id="appr">اعتماد الجدول وإشعار الخدام</button></div>
   <h3>المسجّلين (${V.length})</h3>${V.map(v=>`<p>${E(v.name)} — ${v.coming?`${(v.from_time||'').slice(0,5)} → ${(v.to_time||'').slice(0,5)}`:'معذور'} ${E(v.note||'')}</p>`).join('')||'<p class="empty">لسه محدش سجّل.</p>'}</section>`;
   box.innerHTML=h;
-  if(window.isStaff){
+  if(window.isStaff&&open){
   $('av-c').value=mine.coming===false?'0':'1';$('av-f').value=(mine.from_time||'').slice(0,5);$('av-t').value=(mine.to_time||'').slice(0,5);$('av-s').value=mine.suggested_service||'';$('av-n').value=mine.note||'';
   const tg=()=>$('av-extra').classList.toggle('hidden',$('av-c').value==='0');$('av-c').onchange=tg;tg();
   $('av-save').onclick=async()=>{const r=await db.from('availability').upsert({user_id:currentUser.id,name:currentProfile.full_name||currentUser.email,week_date:T,coming:$('av-c').value=='1',from_time:$('av-c').value=='1'?($('av-f').value||null):null,to_time:$('av-c').value=='1'?($('av-t').value||null):null,suggested_service:$('av-c').value=='1'?($('av-s').value||null):null,note:$('av-n').value||null},{onConflict:'user_id,week_date'});message('av-m',r.error?r.error.message:'تم الحفظ.',!!r.error)};
