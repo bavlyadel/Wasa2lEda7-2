@@ -66,11 +66,19 @@ function communionText(s){
 function reqExtra(r){
   let t="";
   if(r.needed_at)t+=`\nموعد الخدمة: ${new Date(r.needed_at).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})}`;
+  const f=d=>new Date(d).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"});
+  if(r.received_at)t+=`\nتم الاستلام: ${f(r.received_at)}`;
+  if(r.returned_at)t+=`\nتم التسليم: ${f(r.returned_at)}`;
   if(r.reject_reason)t+=`\n⚠️ ${r.reject_reason}`;
   return t;
 }
 async function deleteRequests(ids){
   if(!ids.length)return;
+  const {data:out}=await db.from("service_requests").select("id").in("id",ids).eq("status","approved").is("returned_at",null).not("tool_items","is",null);
+  if(out&&out.length){
+    if(confirm(`فيه ${out.length} طلب أدوات لسه ما اتسلمش. ترجّع الأدوات للمخزن دلوقتي قبل الحذف؟\n(موافق = ترجّعها وتحذف)`)){const e=(await db.from("service_requests").update({returned_at:new Date().toISOString()}).in("id",out.map(x=>x.id))).error;if(e){alert(e.message);return;}}
+    else if(!confirm("تحذف الطلب من غير ما ترجّع الأدوات؟ هتفضل خارج المخزن."))return;
+  }
   const {data:ph}=await db.from("request_photos").select("path").in("request_id",ids);
   if(ph&&ph.length)await db.storage.from("tool-photos").remove(ph.map(p=>p.path));
   const {error}=await db.from("service_requests").delete().in("id",ids);
@@ -126,12 +134,12 @@ async function refreshData(){
   await loadRequests();
 }
 async function loadRequests(){
-  const {data:mine,error}=await db.from("service_requests").select("id,request_type,details,status,created_at,service_id,tool_items,needed_at,reject_reason,services(title)").eq("user_id",currentUser.id).order("created_at",{ascending:false});
+  const {data:mine,error}=await db.from("service_requests").select("id,request_type,details,status,created_at,service_id,tool_items,needed_at,received_at,returned_at,reject_reason,services(title)").eq("user_id",currentUser.id).order("created_at",{ascending:false});
   if(error){console.error(error);return;}
   $("stat-requests").textContent=(mine||[]).filter(r=>r.status==="pending").length;
   $("my-requests").innerHTML=mine?.length?mine.map(r=>`<article class="request-item" data-rid="${r.id}" data-tool="${r.tool_items?1:0}" data-status="${r.status}"><div class="request-top"><span>${escapeHtml(r.request_type)}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}${escapeHtml(reqExtra(r))}</p></article>`).join(""):'<p class="empty">لا توجد طلبات بعد.</p>';
   if(currentProfile.role==="admin"){
-    const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,tool_items,needed_at,reject_reason,profiles(full_name,email,phone),services(title)").order("created_at",{ascending:false});
+    const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,tool_items,needed_at,received_at,returned_at,reject_reason,profiles(full_name,email,phone),services(title)").order("created_at",{ascending:false});
     if(adminErr){$("admin-requests").innerHTML=`<p class="empty">${escapeHtml(adminErr.message)}</p>`;return;}
     $("admin-requests").innerHTML=(all?.some(r=>r.status!=="pending")?`<div class="row-btns"><button class="btn ghost" id="del-done">حذف كل الطلبات المنتهية (الموافق عليها والمرفوضة)</button></div>`:"")+(all?.length?all.map(r=>`<article class="request-item" data-rid="${r.id}" data-tool="${r.tool_items?1:0}"><div class="request-top"><span>${escapeHtml(r.request_type)} · ${escapeHtml(r.profiles?.full_name||r.profiles?.email||"عضو")}${r.profiles?.phone?" · "+escapeHtml(r.profiles.phone):""}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}${escapeHtml(reqExtra(r))}</p><div class="request-controls">${r.status!=="approved"?`<button class="btn" data-request="${r.id}" data-status="approved">موافقة</button>`:""}${r.status!=="rejected"?`<button class="btn" data-request="${r.id}" data-status="rejected">رفض</button>`:""}${r.status!=="pending"?`<button class="btn ghost" data-request="${r.id}" data-status="pending">إعادة للانتظار</button>`:""}<button class="btn ghost" data-del="${r.id}">حذف</button></div></article>`).join(""):'<p class="empty">لا توجد طلبات من الأعضاء.</p>');
     $("admin-requests").querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("حذف الطلب نهائيًا؟"))return;await deleteRequests([b.dataset.del]);await refreshData();}));
