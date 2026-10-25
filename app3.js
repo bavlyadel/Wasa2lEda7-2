@@ -206,4 +206,4 @@ if(currentUser)refreshData(); // لو app.js خلّص تحميل البيانا�
 })();
 
 // فيديو شرح إنشاء الحساب في صفحة الدخول (غيّر الفيديو بوضع ملف جديد بنفس الاسم في assets وزوّد رقم v)
-(function(){const c=document.querySelector('.auth-card');if(c&&!document.getElementById('x-guide'))c.insertAdjacentHTML('beforeend','<details id="x-guide" style="margin-top:1rem"><summary style="cursor:pointer;font-weight:700">▶ شاهد شرح إنشاء الحساب (فيديو قصير)</summary><video controls playsinline preload="none" style="width:100%;max-width:340px;margin:.8rem auto 0;display:block;border-radius:12px" src="assets/signup-guide.mp4?v=2"></video></details>')})();
+(function(){const c=document.querySelector('.auth-card');if(c&&!document.getElementById('x-guide'))c.insertAdjacentHTML('beforeend','<details id="x-guide" style="margin-top:1rem"><summary style="cursor:pointer;font-weight:700">▶ شاهد شرح إنشاء الحساب (فيديو قصير)</summary><video controls playsinline preload="none" style="width:100%;max-width:340px;margin:.8rem auto 0;display:block;border-radius:12px" src="assets/signup-guide.mp4?v=3"></video></details>')})();

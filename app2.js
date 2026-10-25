@@ -28,12 +28,17 @@ async function extras(){
 function table(){
   $('stat-mine').textContent=A.filter(x=>x.user_id===currentUser.id).length;
   const hr=document.querySelector('#services-panel thead tr');if(hr&&hr.children.length<7)hr.insertAdjacentHTML('beforeend','<th>جمعة التناول</th>');
+  if(admin()&&!$('reset-assign')){const rb=document.createElement('button');rb.id='reset-assign';rb.className='btn ghost';rb.textContent='تفضية الخدام من الجدول';rb.onclick=async()=>{
+    if(!servicesCache.length)return alert('مفيش خدمات في الجدول.');
+    if(!confirm('هتشيل كل الخدام من كل الخدمات في الجدول (المعتمدين والمسودة). الخدمات نفسها هتفضل زي ما هي. متأكد؟'))return;
+    const r=await db.from('service_assignees').delete().in('service_id',servicesCache.map(s=>s.id));
+    if(r.error)return alert(r.error.message);refreshData()};$('refresh').before(rb)}
   if(!servicesCache.length)return;
-  $('services-body').innerHTML=servicesCache.map(s=>{
+  $('services-body').innerHTML=servicesCache.slice().sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||''))).map(s=>{
     const names=A.filter(x=>x.service_id==s.id).map(x=>E(x.name)+(x.status=='draft'?' <small>(مسودة)</small>':'')).join('، ')||'—';
     const o=Math.ceil(+s.service_date.slice(8,10)/7);
     const comm=s.communion_n&&s.communion_n==o?' <span class="status approved">تناول</span>':'';
-    return `<tr><td><strong>${E(s.title)}</strong>${comm}</td><td>${dateText(s.service_date)}</td><td>${E((s.service_time||'').slice(0,5)||'—')}</td><td>${E(s.location)}</td><td>${names}</td><td>${E(s.notes||'—')}${admin()?` <button class="btn ghost" data-edit="${s.id}">تعديل</button>`:''}</td><td>${E(communionText(s))}</td></tr>`}).join('');
+    return `<tr><td><strong>${E(s.title)}</strong>${comm}</td><td>${dateText(s.service_date)}</td><td>${E(t12(s.service_time))}</td><td>${E(s.location)}</td><td>${names}</td><td>${E(s.notes||'—')}${admin()?` <button class="btn ghost" data-edit="${s.id}">تعديل</button>`:''}</td><td>${E(communionText(s))}</td></tr>`}).join('');
   document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(b.dataset.edit));
 }
 function bell(n){
@@ -53,12 +58,12 @@ function panels(contacts,T){
   if(window.isStaff)h+=open?`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2><p class="muted">آخر ميعاد للتسجيل: الأربع الساعة 12 ظهرًا.</p>
   <label>هتنزل؟<select id="av-c"><option value="1">نازل</option><option value="0">معذور</option></select></label>
   <div id="av-extra" class="stack"><div class="two-col"><label>فاضي من<input id="av-f" type="time"></label><label>لحد<input id="av-t" type="time"></label></div>
-  <label>خدمة بترشحها<select id="av-s"><option value="">أي خدمة</option>${svs.map(s=>`<option value="${s.id}">${E(s.title)} — ${E((s.service_time||'').slice(0,5))}</option>`).join('')}</select></label></div>
+  <label>خدمة بترشحها<select id="av-s"><option value="">أي خدمة</option>${svs.map(s=>`<option value="${s.id}">${E(s.title)} — ${E(t12(s.service_time))}</option>`).join('')}</select></label></div>
   <label>ملاحظة<input id="av-n"></label><button class="btn primary" id="av-save">حفظ</button><p id="av-m" class="message"></p></section>`:closedHtml;
   h+=`<section class="panel pad"><h2>أرقام المسؤولين</h2>${contacts.map(c=>`<p>${E(c.name)}: <a href="tel:${E(c.phone)}">${E(c.phone)}</a> · <a href="https://wa.me/${E(c.phone.replace(/\D/g,''))}">واتساب</a>${admin()?` <button class="btn ghost" data-delc="${c.id}">حذف</button>`:''}</p>`).join('')||'<p class="empty">لا توجد أرقام.</p>'}
   ${admin()?'<div class="two-col"><input id="c-n" placeholder="الاسم"><input id="c-p" placeholder="رقم التليفون"></div><button class="btn" id="c-add">إضافة رقم</button>':''}</section>`;
-  if(admin())h+=`<section class="panel pad"><h2>إدارة جدول ${dateText(T)}</h2><div class="row-btns"><button class="btn primary" id="auto">توزيع تلقائي (مسودة)</button><button class="btn" id="appr">اعتماد الجدول وإشعار الخدام</button></div>
-  <h3>المسجّلين (${V.length})</h3>${V.map(v=>`<p>${E(v.name)} — ${v.coming?`${(v.from_time||'').slice(0,5)} → ${(v.to_time||'').slice(0,5)}`:'معذور'} ${E(v.note||'')}</p>`).join('')||'<p class="empty">لسه محدش سجّل.</p>'}</section>`;
+  if(admin())h+=`<section class="panel pad"><h2>إدارة جدول ${dateText(T)}</h2><div class="row-btns"><button class="btn primary" id="auto">توزيع تلقائي (مسودة)</button><button class="btn" id="appr">اعتماد الجدول وإشعار الخدام</button><button class="btn ghost" id="clr-draft">تصفية المسودة</button></div>
+  <h3>المسجّلين (${V.length})</h3>${V.map(v=>`<p>${E(v.name)} — ${v.coming?`${t12(v.from_time)} → ${t12(v.to_time)}`:'معذور'} ${E(v.note||'')}</p>`).join('')||'<p class="empty">لسه محدش سجّل.</p>'}</section>`;
   box.innerHTML=h;
   if(window.isStaff&&open){
   $('av-c').value=mine.coming===false?'0':'1';$('av-f').value=(mine.from_time||'').slice(0,5);$('av-t').value=(mine.to_time||'').slice(0,5);$('av-s').value=mine.suggested_service||'';$('av-n').value=mine.note||'';
@@ -68,7 +73,10 @@ function panels(contacts,T){
   if(admin()){
     $('c-add').onclick=async()=>{if($('c-n').value&&$('c-p').value){await db.from('contacts').insert({name:$('c-n').value,phone:$('c-p').value});refreshData()}};
     box.querySelectorAll('[data-delc]').forEach(b=>b.onclick=async()=>{await db.from('contacts').delete().eq('id',b.dataset.delc);refreshData()});
-    $('auto').onclick=()=>auto(T,svs);$('appr').onclick=()=>approve(svs);
+    $('auto').onclick=()=>auto(T,svs);$('clr-draft').onclick=async()=>{
+      const n=A.filter(x=>x.status=='draft').length;if(!n)return alert('مفيش مسودة.');
+      if(!confirm(`هتتمسح المسودة (${n} تكليف). التكليفات المعتمدة مش هتتأثر. متأكد؟`))return;
+      const r=await db.from('service_assignees').delete().eq('status','draft');if(r.error)return alert(r.error.message);refreshData()};$('appr').onclick=()=>approve(svs);
   }
 }
 async function auto(T,svs){
@@ -88,7 +96,7 @@ async function approve(svs){
   const d=A.filter(x=>x.status=='draft'&&svs.some(s=>s.id==x.service_id));
   if(!d.length)return alert('مفيش مسودة للاعتماد.');
   await db.from('service_assignees').update({status:'approved'}).in('id',d.map(x=>x.id));
-  for(const x of d){const s=svs.find(s=>s.id==x.service_id);if(x.user_id)await notify([x.user_id],`تم تكليفك بخدمة ${s.title} يوم ${dateText(s.service_date)} الساعة ${(s.service_time||'').slice(0,5)}`)}
+  for(const x of d){const s=svs.find(s=>s.id==x.service_id);if(x.user_id)await notify([x.user_id],`تم تكليفك بخدمة ${s.title} يوم ${dateText(s.service_date)} الساعة ${t12(s.service_time)}`)}
   alert('تم اعتماد الجدول وإشعار الخدام.');refreshData();
 }
 function edit(id){

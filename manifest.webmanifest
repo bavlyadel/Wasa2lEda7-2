@@ -1,0 +1,12 @@
+{
+  "name": "وسائل إيضاح",
+  "short_name": "وسائل إيضاح",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "icons": [{ "src": "assets/logo-wasael.png", "sizes": "any", "type": "image/png", "purpose": "any" }]
+}
