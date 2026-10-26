@@ -67,37 +67,3 @@ const orig=refreshData;let done=null;
 refreshData=async function(){await orig();guides();if(done!==(currentUser&&currentUser.id)){done=currentUser&&currentUser.id;await init()}else if(!$('x-push')?.innerHTML)render(false)};
 if(currentUser)refreshData(); // لو app.js خلّص تحميل البيانات قبل تشغيل الإضافات
 })();
-
-/* مُختار وقت بنظام 12 ساعة (ساعة : دقيقة ص/م) بدل خانة الوقت الأصلية اللي بتتبع إعدادات الموبايل */
-(function(){
-const proto=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
-const AR=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
-function twelve(inp){
-  if(inp.dataset.t12)return;inp.dataset.t12='1';
-  const req=inp.required;inp.required=false;inp.style.display='none';
-  const wrap=document.createElement('span');wrap.className='t12';wrap.style.cssText='display:flex;gap:6px;align-items:center;direction:rtl';
-  const mk=(opts,first)=>{const s=document.createElement('select');s.style.cssText='flex:1;min-width:0;width:auto';s.innerHTML=`<option value="">${first}</option>`+opts.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');return s};
-  const h=mk([...Array(12)].map((_,i)=>[i+1,AR(i+1)]),'ساعة'),m=mk([...Array(12)].map((_,i)=>[i*5,AR(String(i*5).padStart(2,'0'))]),'دقيقة'),
-        ap=mk([['AM','ص'],['PM','م']],'ص/م');
-  h.required=req;h.setAttribute('aria-label','الساعة');m.setAttribute('aria-label','الدقيقة');ap.setAttribute('aria-label','صباحًا أو مساءً');
-  wrap.append(h,m,ap);inp.after(wrap);
-  const read=()=>proto.get.call(inp);
-  function show(v){
-    const mt=/^(\d{1,2}):(\d{2})/.exec(v||'');
-    if(!mt){h.value=m.value=ap.value='';return}
-    let H=+mt[1],M=+mt[2];ap.value=H>=12?'PM':'AM';H=H%12||12;h.value=H;
-    if(![...m.options].some(o=>o.value==String(M))){const o=document.createElement('option');o.value=M;o.textContent=AR(String(M).padStart(2,'0'));m.append(o)}
-    m.value=M;
-  }
-  function push(){
-    let v='';
-    if(h.value&&ap.value){let H=+h.value%12;if(ap.value==='PM')H+=12;v=String(H).padStart(2,'0')+':'+String(+(m.value||0)).padStart(2,'0')}
-    proto.set.call(inp,v);inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));
-  }
-  [h,m,ap].forEach(s=>s.addEventListener('change',push));
-  Object.defineProperty(inp,'value',{get(){return read()},set(v){proto.set.call(inp,v);show(v)},configurable:true});
-  show(read());
-}
-const scan=()=>document.querySelectorAll('input[type=time]').forEach(twelve);
-new MutationObserver(scan).observe(document.documentElement,{childList:true,subtree:true});scan();
-})();
