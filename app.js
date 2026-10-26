@@ -13,8 +13,6 @@ function setAuthMode(mode){ authMode=mode; document.querySelectorAll(".tab").for
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setAuthMode(b.dataset.tab)));
 function dateText(d){ if(!d)return "—"; try{return new Intl.DateTimeFormat("ar-EG",{year:"numeric",month:"short",day:"numeric"}).format(new Date(d+"T12:00:00"));}catch{return d;} }
 function t12(t){ if(!t)return "—"; const m=String(t).match(/^(\d{1,2}):(\d{2})/); if(!m)return t; try{return new Intl.DateTimeFormat("ar-EG",{hour:"numeric",minute:"2-digit",hour12:true,timeZone:"UTC"}).format(new Date(Date.UTC(1970,0,1,+m[1],+m[2])));}catch{return t;} }
-const fmtDT=x=>x?new Date(x).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"}):"";
-function handoverLine(r){return `<p class="muted">📥 الاستلام: ${r.picked_up_at?escapeHtml(fmtDT(r.picked_up_at)):"لسه"} · 📤 التسليم: ${r.returned_at?escapeHtml(fmtDT(r.returned_at)):"لسه"}</p>`;}
 function statusText(s){return ({pending:"قيد المراجعة",approved:"تمت الموافقة",rejected:"مرفوض"})[s]||s;}
 function statusClass(s){return ({pending:"pending",approved:"approved",rejected:"rejected"})[s]||"";}
 
@@ -73,14 +71,6 @@ function reqExtra(r){
 }
 async function deleteRequests(ids){
   if(!ids.length)return;
-  // طلبات أدوات معتمدة ولسه ماتسجلش إرجاعها: نسأل قبل الحذف بدل ما الأعداد تتلخبط
-  const {data:held}=await db.from("service_requests").select("id,status,tool_items,returned_at").in("id",ids);
-  const out=(held||[]).filter(r=>r.status==="approved"&&r.tool_items&&!r.returned_at);
-  if(out.length){
-    if(confirm(`فيه ${out.length} طلب أدوات لسه خارجة. ترجّعها للمخزن؟`)){
-      for(const r of out){const {error:e}=await db.rpc("mark_handover",{rid:String(r.id),phase:"return"});if(e){alert(e.message);return;}}
-    }else if(!confirm("تحذف من غير ما ترجّع الأدوات للمخزن؟ الأعداد المتاحة مش هتتحدّث.")){return;}
-  }
   const {data:ph}=await db.from("request_photos").select("path").in("request_id",ids);
   if(ph&&ph.length)await db.storage.from("tool-photos").remove(ph.map(p=>p.path));
   const {error}=await db.from("service_requests").delete().in("id",ids);
@@ -136,10 +126,10 @@ async function refreshData(){
   await loadRequests();
 }
 async function loadRequests(){
-  const {data:mine,error}=await db.from("service_requests").select("id,request_type,details,status,created_at,service_id,tool_items,needed_at,reject_reason,picked_up_at,returned_at,services(title)").eq("user_id",currentUser.id).order("created_at",{ascending:false});
+  const {data:mine,error}=await db.from("service_requests").select("id,request_type,details,status,created_at,service_id,tool_items,needed_at,reject_reason,services(title)").eq("user_id",currentUser.id).order("created_at",{ascending:false});
   if(error){console.error(error);return;}
   $("stat-requests").textContent=(mine||[]).filter(r=>r.status==="pending").length;
-  $("my-requests").innerHTML=mine?.length?mine.map(r=>`<article class="request-item" data-rid="${r.id}" data-tool="${r.tool_items?1:0}" data-status="${r.status}"><div class="request-top"><span>${escapeHtml(r.request_type)}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}${escapeHtml(reqExtra(r))}</p>${r.tool_items&&r.status==="approved"?handoverLine(r):""}</article>`).join(""):'<p class="empty">لا توجد طلبات بعد.</p>';
+  $("my-requests").innerHTML=mine?.length?mine.map(r=>`<article class="request-item" data-rid="${r.id}" data-tool="${r.tool_items?1:0}" data-status="${r.status}"><div class="request-top"><span>${escapeHtml(r.request_type)}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}${escapeHtml(reqExtra(r))}</p></article>`).join(""):'<p class="empty">لا توجد طلبات بعد.</p>';
   if(currentProfile.role==="admin"){
     const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,tool_items,needed_at,reject_reason,profiles(full_name,email,phone),services(title)").order("created_at",{ascending:false});
     if(adminErr){$("admin-requests").innerHTML=`<p class="empty">${escapeHtml(adminErr.message)}</p>`;return;}
