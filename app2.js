@@ -5,6 +5,9 @@ const iso=d=>d.toLocaleDateString('sv'), E=escapeHtml, admin=()=>currentProfile&
 const cairo=()=>{const f=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',weekday:'short'}).formatToParts(new Date());const g=t=>f.find(x=>x.type===t).value;return{y:+g('year'),m:+g('month'),d:+g('day'),h:+g('hour'),dow:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(g('weekday'))}};
 const nextFri=()=>{const c=cairo(),k=(5-c.dow+7)%7;return new Date(Date.UTC(c.y,c.m-1,c.d+k)).toISOString().slice(0,10)};
 const regOpen=()=>{const c=cairo(),k=(5-c.dow+7)%7;return k>2||(k===2&&c.h<12)};
+// الخدمة بتخلص: الخدام بيتشالوا من الجدول تاني يوم الساعة 12 ظهرًا (توقيت القاهرة)
+const expired=s=>{if(!s)return false;const c=cairo(),p=n=>String(n).padStart(2,'0'),today=`${c.y}-${p(c.m)}-${p(c.d)}`,nx=new Date(Date.UTC(+s.service_date.slice(0,4),+s.service_date.slice(5,7)-1,+s.service_date.slice(8,10)+1)).toISOString().slice(0,10);return today>nx||(today===nx&&c.h>=12)};
+window.xExpired=expired;
 let A=[],M=[],V=[];
 // اللوجوهات
 const bm=document.querySelector('.brand-mark');
@@ -12,7 +15,7 @@ if(bm)bm.outerHTML='<img src="assets/logo-wasael.png" alt="وسائل إيضاح
 document.querySelector('.top-actions')?.insertAdjacentHTML('afterbegin','<img src="assets/logo-church.png" alt="الكنيسة"><span id="x-bell"></span>');
 
 const orig=refreshData;
-refreshData=async function(){ if(db&&currentUser)await db.rpc('roll_services'); await orig(); await extras(); };
+refreshData=async function(){ if(db&&currentUser){await db.rpc('clear_past_assignees');await db.rpc('roll_services')} await orig(); await extras(); };
 
 async function extras(){
   if(!db||!currentUser)return; const T=nextFri();
@@ -21,7 +24,7 @@ async function extras(){
     db.from('contacts').select('*').order('name'),
     db.from('notifications').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(20),
     db.from('availability').select('*').eq('week_date',T)]);
-  A=a.data||[];V=v.data||[];
+  A=(a.data||[]).filter(x=>!expired(servicesCache.find(s=>s.id==x.service_id)));V=v.data||[];
   if(admin()){M=(await db.from('profiles').select('id,full_name,email,role').in('role',['server','admin'])).data||[];}
   table();bell(n.data||[]);panels(c.data||[],T);
 }

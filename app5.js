@@ -1,32 +1,58 @@
-/* إضافات 5: تكليف خادم بتسليم/استلام الأدوات + صور من الخادم ومن العضو (كل واحد يشوف بتاعته، والمسؤول يشوف الاتنين) */
+/* ثيمات + مشاركة الجدول كصورة */
 (function(){
-const E=escapeHtml, admin=()=>currentProfile&&currentProfile.role==='admin', B='handover-photos';
-const ST={delivery:'عند التسليم',return:'عند الاستلام (الإرجاع)'}, SD={servant:'الخادم',member:'العضو'};
-const o=refreshData;refreshData=async function(){await o();await ho()};
-const shrink=f=>new Promise(r=>{const i=new Image();i.onload=()=>{const k=Math.min(1,1280/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);c.toBlob(r,'image/jpeg',.8)};i.src=URL.createObjectURL(f)});
-async function ho(){
-  if(!db||!currentUser)return;
-  const H=(await db.from('handovers').select('*').order('created_at',{ascending:false})).data||[];
-  const P=(await db.from('handover_photos').select('*').order('created_at')).data||[];
-  const M=admin()?((await db.from('profiles').select('id,full_name,email')).data||[]):[];
-  let box=$('x-ho');if(!box){box=document.createElement('section');box.id='x-ho';box.className='panel pad stack';$('admin-panel').before(box)}
-  box.classList.toggle('hidden',!H.length&&!admin());if(!H.length&&!admin())return;
-  const U={};await Promise.all(P.map(async p=>{const r=await db.storage.from(B).createSignedUrl(p.path,3600);U[p.id]=r.data&&r.data.signedUrl}));
-  const opts=M.map(m=>`<option value="${m.id}">${E(m.full_name||m.email)}</option>`).join('');
-  box.innerHTML='<h2>تسليم واستلام الأدوات</h2>'+H.map(h=>{
-    const side=h.servant_id===currentUser.id?'servant':h.member_id===currentUser.id?'member':null;
-    const who=admin()?`الخادم: ${E(h.servant_name||'')} · العضو: ${E(h.member_name||'')}`:side==='servant'?'إنت الخادم المكلّف بالتسليم والاستلام':'إنت المستلم';
-    return `<article class="request-item"><div class="request-top"><b>${E(h.title)}</b>${admin()?`<button class="btn ghost" data-hd="${h.id}">حذف</button>`:''}</div><p class="muted">${who}</p>`+['delivery','return'].map(st=>`<div><b>${ST[st]}</b><div class="row-btns">${P.filter(p=>p.handover_id==h.id&&p.stage==st).map(p=>`<figure style="margin:0;text-align:center"><a href="${U[p.id]||'#'}" target="_blank"><img src="${U[p.id]||''}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:10px"></a><small>${SD[p.side]}</small></figure>`).join('')||'<span class="muted">لا توجد صور</span>'}</div>${side?`<label class="btn ghost">+ إضافة صورة<input type="file" accept="image/*" capture="environment" hidden data-up="${h.id}|${side}|${st}"></label>`:''}</div>`).join('')+'</article>'}).join('')
-  +(admin()?`<div class="stack"><h3>تكليف جديد</h3><label>الوصف (الأدوات)<input id="h-t" placeholder="مثال: ٢ ميكروفون"></label><label>العضو المستلم<select id="h-m">${opts}</select></label><label>الخادم المكلّف<select id="h-s">${opts}</select></label><button class="btn primary" id="h-add">إضافة</button></div>`:'');
-  const nm=id=>{const m=M.find(x=>x.id==id);return m?(m.full_name||m.email):''};
-  if(admin()){
-    $('h-add').onclick=async()=>{const t=$('h-t').value.trim();if(!t)return;const r=await db.from('handovers').insert({title:t,member_id:$('h-m').value,servant_id:$('h-s').value,member_name:nm($('h-m').value),servant_name:nm($('h-s').value)});if(r.error)alert(r.error.message);else refreshData()};
-    box.querySelectorAll('[data-hd]').forEach(b=>b.onclick=async()=>{if(confirm('حذف التكليف وصوره؟')){await db.from('handovers').delete().eq('id',b.dataset.hd);refreshData()}});
+const TH=[['dark','🌙 داكن'],['light','☀️ فاتح'],['emerald','🌿 زمردي'],['royal','👑 ملكي'],['sunset','🌇 غروب'],['auto','🖥 تلقائي']];
+const get=()=>{try{return localStorage.getItem('theme')||'dark'}catch{return'dark'}};
+function apply(t){const r=t==='auto'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):t;document.documentElement.dataset.theme=r;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||'#111827'}
+const ta=document.querySelector('.top-actions');
+if(ta){ta.insertAdjacentHTML('afterbegin',`<select id="x-theme" aria-label="الثيم">${TH.map(([v,n])=>`<option value="${v}">${n}</option>`).join('')}</select>`);
+  const s=document.getElementById('x-theme');s.value=get();s.onchange=()=>{try{localStorage.setItem('theme',s.value)}catch{}apply(s.value)}}
+apply(get());
+matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',()=>{if(get()==='auto')apply('auto')});
+
+/* ---------- صورة الجدول ---------- */
+const todayCairo=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
+const loadImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+const longDate=d=>new Intl.DateTimeFormat('ar-EG',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(d+'T12:00:00'));
+function wrap(c,text,w){const out=[];String(text||'').split('\n').forEach(p=>{let cur='';p.split(/\s+/).filter(Boolean).forEach(word=>{const t=cur?cur+' '+word:word;if(c.measureText(t).width>w&&cur){out.push(cur);cur=word}else cur=t});out.push(cur||'')});return out.length?out:['—']}
+async function build(){
+  const T=todayCairo(),svs=servicesCache.filter(s=>s.service_date>=T);
+  if(!svs.length){alert('مفيش خدمات جاية في الجدول.');return null}
+  const as=(await db.from('service_assignees').select('service_id,name,status').eq('status','approved')).data||[];
+  try{await document.fonts.load('700 26px Cairo')}catch{}
+  const [lw,lc]=await Promise.all([loadImg('assets/logo-wasael.png'),loadImg('assets/logo-church.png')]);
+  const F='Cairo, Tahoma, sans-serif',W=1240,S=2,X0=W-40,col=[.22,.12,.2,.28,.18].map(x=>x*(W-80));
+  const heads=['الخدمة','الميعاد','المكان','المكلّفون','ملاحظات'];
+  const cv=document.createElement('canvas'),c=cv.getContext('2d');c.font=`600 24px ${F}`;
+  const items=[];let y=190,last='';
+  for(const s of svs){
+    if(s.service_date!==last){last=s.service_date;items.push({k:'d',y,t:longDate(s.service_date)});y+=64;items.push({k:'h',y});y+=52}
+    const cells=[s.title,t12(s.service_time),s.location,as.filter(a=>a.service_id==s.id).map(a=>a.name).join('\n')||'—',[s.notes,String(communionText(s)).startsWith('✔')?'✔ جمعة التناول':''].filter(Boolean).join('\n')||'—'];
+    const lines=cells.map((t,i)=>wrap(c,t,col[i]-28)),h=Math.max(...lines.map(l=>l.length))*36+28;
+    items.push({k:'r',y,h,lines});y+=h;
   }
-  box.querySelectorAll('[data-up]').forEach(inp=>inp.onchange=async()=>{
-    const f=inp.files[0];if(!f)return;const [hid,side,stage]=inp.dataset.up.split('|'),path=`${currentUser.id}/${hid}/${stage}-${Date.now()}.jpg`;
-    const up=await db.storage.from(B).upload(path,await shrink(f),{contentType:'image/jpeg'});if(up.error)return alert(up.error.message);
-    const r=await db.from('handover_photos').insert({handover_id:hid,side,stage,path});if(r.error)alert(r.error.message);else refreshData()});
+  const H=y+90;cv.width=W*S;cv.height=H*S;c.scale(S,S);c.direction='rtl';c.textAlign='right';c.textBaseline='top';
+  const cs=getComputedStyle(document.documentElement);
+  c.fillStyle='#ffffff';c.fillRect(0,0,W,H);
+  const g=c.createLinearGradient(0,0,W,0);g.addColorStop(0,'#14233c');g.addColorStop(1,'#3166e8');c.fillStyle=g;c.fillRect(0,0,W,150);
+  const lh=96;if(lw){const w=lw.width*lh/lw.height;c.drawImage(lw,X0-w,27,w,lh)}if(lc){const w=lc.width*lh/lc.height;c.drawImage(lc,40,27,w,lh)}
+  c.textAlign='center';c.fillStyle='#fff';c.font=`800 42px ${F}`;c.fillText('وسائل إيضاح',W/2,34);c.font=`600 26px ${F}`;c.fillStyle='#cfe0ff';c.fillText('جدول الخدمات',W/2,92);
+  c.textAlign='right';let n=0;
+  for(const it of items){
+    if(it.k==='d'){c.fillStyle='#14233c';c.font=`800 30px ${F}`;c.fillText('📅 '+it.t,X0,it.y+10);c.fillStyle='#3166e8';c.fillRect(40,it.y+54,W-80,3)}
+    else if(it.k==='h'){c.fillStyle='#eef3fb';c.fillRect(40,it.y,W-80,48);c.fillStyle='#34425f';c.font=`700 22px ${F}`;let x=X0;heads.forEach((t,i)=>{c.fillText(t,x-16,it.y+10);x-=col[i]});n=0}
+    else{c.fillStyle=n++%2?'#f6f8fc':'#ffffff';c.fillRect(40,it.y,W-80,it.h);c.fillStyle='#16213a';let x=X0;it.lines.forEach((ls,i)=>{c.font=`${i===0?700:500} 24px ${F}`;ls.forEach((t,j)=>c.fillText(t,x-16,it.y+14+j*36));x-=col[i]});c.fillStyle='#dde4f0';c.fillRect(40,it.y+it.h-1,W-80,1)}
+  }
+  c.textAlign='center';c.fillStyle='#5f6e8a';c.font=`500 20px ${F}`;c.fillText('كنيسة الملاك ميخائيل والأنبا شنودة بعياد بك',W/2,H-56);
+  return new Promise(r=>cv.toBlob(r,'image/png'));
 }
-if(currentUser)refreshData();
+async function run(share){
+  const b=document.getElementById(share?'x-share':'x-dl');b.disabled=true;
+  try{const blob=await build();if(!blob)return;const f=new File([blob],'جدول-الخدمات.png',{type:'image/png'});
+    if(share&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'جدول الخدمات'});return}catch(e){if(e.name==='AbortError')return}}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='جدول-الخدمات.png';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }catch(e){alert('تعذر عمل الصورة: '+(e.message||e))}finally{b.disabled=false}
+}
+const rf=document.getElementById('refresh');
+if(rf){const w=document.createElement('div');w.className='row-btns';w.style.margin='0';w.innerHTML='<button id="x-share" class="btn" type="button">📤 مشاركة الجدول</button><button id="x-dl" class="btn ghost" type="button">🖼 تنزيل كصورة</button>';rf.before(w);w.append(rf);
+  document.getElementById('x-share').onclick=()=>run(true);document.getElementById('x-dl').onclick=()=>run(false)}
 })();

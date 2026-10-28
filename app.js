@@ -66,6 +66,8 @@ function communionText(s){
 function reqExtra(r){
   let t="";
   if(r.needed_at)t+=`\nموعد الخدمة: ${new Date(r.needed_at).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})}`;
+  if(r.picked_at)t+=`\n📦 تم الاستلام: ${new Date(r.picked_at).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})}`;
+  if(r.returned_at)t+=`\n✅ تم إرجاع الأدوات للمخزن: ${new Date(r.returned_at).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})}`;
   if(r.reject_reason)t+=`\n⚠️ ${r.reject_reason}`;
   return t;
 }
@@ -126,12 +128,12 @@ async function refreshData(){
   await loadRequests();
 }
 async function loadRequests(){
-  const {data:mine,error}=await db.from("service_requests").select("id,request_type,details,status,created_at,service_id,tool_items,needed_at,reject_reason,services(title)").eq("user_id",currentUser.id).order("created_at",{ascending:false});
+  const {data:mine,error}=await db.from("service_requests").select("id,request_type,details,status,created_at,service_id,tool_items,needed_at,reject_reason,picked_at,returned_at,services(title)").eq("user_id",currentUser.id).order("created_at",{ascending:false});
   if(error){console.error(error);return;}
   $("stat-requests").textContent=(mine||[]).filter(r=>r.status==="pending").length;
   $("my-requests").innerHTML=mine?.length?mine.map(r=>`<article class="request-item" data-rid="${r.id}" data-tool="${r.tool_items?1:0}" data-status="${r.status}"><div class="request-top"><span>${escapeHtml(r.request_type)}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}${escapeHtml(reqExtra(r))}</p></article>`).join(""):'<p class="empty">لا توجد طلبات بعد.</p>';
   if(currentProfile.role==="admin"){
-    const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,tool_items,needed_at,reject_reason,profiles(full_name,email,phone),services(title)").order("created_at",{ascending:false});
+    const {data:all,error:adminErr}=await db.from("service_requests").select("id,request_type,details,status,created_at,user_id,service_id,tool_items,needed_at,reject_reason,picked_at,returned_at,profiles(full_name,email,phone),services(title)").order("created_at",{ascending:false});
     if(adminErr){$("admin-requests").innerHTML=`<p class="empty">${escapeHtml(adminErr.message)}</p>`;return;}
     $("admin-requests").innerHTML=(all?.some(r=>r.status!=="pending")?`<div class="row-btns"><button class="btn ghost" id="del-done">حذف كل الطلبات المنتهية (الموافق عليها والمرفوضة)</button></div>`:"")+(all?.length?all.map(r=>`<article class="request-item" data-rid="${r.id}" data-tool="${r.tool_items?1:0}"><div class="request-top"><span>${escapeHtml(r.request_type)} · ${escapeHtml(r.profiles?.full_name||r.profiles?.email||"عضو")}${r.profiles?.phone?" · "+escapeHtml(r.profiles.phone):""}</span><span class="status ${statusClass(r.status)}">${statusText(r.status)}</span></div><p>${escapeHtml(r.services?.title?`الخدمة: ${r.services.title}\n`:"")}${escapeHtml(r.details)}${escapeHtml(reqExtra(r))}</p><div class="request-controls">${r.status!=="approved"?`<button class="btn" data-request="${r.id}" data-status="approved">موافقة</button>`:""}${r.status!=="rejected"?`<button class="btn" data-request="${r.id}" data-status="rejected">رفض</button>`:""}${r.status!=="pending"?`<button class="btn ghost" data-request="${r.id}" data-status="pending">إعادة للانتظار</button>`:""}<button class="btn ghost" data-del="${r.id}">حذف</button></div></article>`).join(""):'<p class="empty">لا توجد طلبات من الأعضاء.</p>');
     $("admin-requests").querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("حذف الطلب نهائيًا؟"))return;await deleteRequests([b.dataset.del]);await refreshData();}));
