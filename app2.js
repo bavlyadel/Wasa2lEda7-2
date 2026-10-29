@@ -56,17 +56,17 @@ function panels(contacts,T){
   if(!box){box=document.createElement('div');box.id='x-panels';$('admin-panel').before(box)}
   const mine=V.find(x=>x.user_id===currentUser.id)||{}, svs=servicesCache.filter(s=>s.service_date==T);
   const open=regOpen()||admin();
-  const closedHtml=`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2><p class="message error" style="font-size:14px;line-height:1.9">اتأخرت عن الحد المسموح للتسجيل في جدول الجمعة (آخر ميعاد الأربع الساعة 12 ظهرًا). وتتعوّض الجمعة اللي جاية بإذن المسيح 🙏</p><p class="muted">${mine.user_id?(mine.coming?'تسجيلك الحالي: نازل':'تسجيلك الحالي: معذور'):'ما سجّلتش للجمعة دي.'}</p></section>`;
+  const closedHtml=`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2><p class="message error" style="font-size:14px;line-height:1.9">اتأخرت عن الحد المسموح للتسجيل في جدول الجمعة (آخر ميعاد الأربع الساعة 12 ظهرًا). وتتعوّض الجمعة اللي جاية بإذن المسيح 🙏</p><p class="muted">${mine.user_id?(mine.coming?'تسجيلك الحالي: نازل':'تسجيلك الحالي: معتذر'):'ما سجّلتش للجمعة دي.'}</p></section>`;
   let h='';
   if(window.isStaff)h+=open?`<section class="panel pad stack"><h2>تسجيلي لجمعة ${dateText(T)}</h2><p class="muted">آخر ميعاد للتسجيل: الأربع الساعة 12 ظهرًا.</p>
-  <label>هتنزل؟<select id="av-c"><option value="1">نازل</option><option value="0">معذور</option></select></label>
+  <label>هتنزل؟<select id="av-c"><option value="1">نازل</option><option value="0">معتذر</option></select></label>
   <div id="av-extra" class="stack"><div class="two-col"><label>فاضي من<input id="av-f" type="time"></label><label>لحد<input id="av-t" type="time"></label></div>
   <label>خدمة بترشحها<select id="av-s"><option value="">أي خدمة</option>${svs.map(s=>`<option value="${s.id}">${E(s.title)} — ${E(t12(s.service_time))}</option>`).join('')}</select></label></div>
   <label>ملاحظة<input id="av-n"></label><button class="btn primary" id="av-save">حفظ</button><p id="av-m" class="message"></p></section>`:closedHtml;
   h+=`<section class="panel pad"><h2>أرقام المسؤولين</h2>${contacts.map(c=>`<p>${E(c.name)}: <a href="tel:${E(c.phone)}">${E(c.phone)}</a> · <a href="https://wa.me/${E(c.phone.replace(/\D/g,''))}">واتساب</a>${admin()?` <button class="btn ghost" data-delc="${c.id}">حذف</button>`:''}</p>`).join('')||'<p class="empty">لا توجد أرقام.</p>'}
   ${admin()?'<div class="two-col"><input id="c-n" placeholder="الاسم"><input id="c-p" placeholder="رقم التليفون"></div><button class="btn" id="c-add">إضافة رقم</button>':''}</section>`;
   if(admin())h+=`<section class="panel pad"><h2>إدارة جدول ${dateText(T)}</h2><div class="row-btns"><button class="btn primary" id="auto">توزيع تلقائي (مسودة)</button><button class="btn" id="appr">اعتماد الجدول وإشعار الخدام</button><button class="btn ghost" id="clr-draft">تصفية المسودة</button></div>
-  <h3>المسجّلين (${V.length})</h3>${V.map(v=>`<p>${E(v.name)} — ${v.coming?`${t12(v.from_time)} → ${t12(v.to_time)}`:'معذور'} ${E(v.note||'')}</p>`).join('')||'<p class="empty">لسه محدش سجّل.</p>'}</section>`;
+  <h3>المسجّلين (${V.length})</h3>${V.map(v=>`<p>${E(v.name)} — ${v.coming?`${t12(v.from_time)} → ${t12(v.to_time)}`:'معتذر'} ${E(v.note||'')}</p>`).join('')||'<p class="empty">لسه محدش سجّل.</p>'}</section>`;
   box.innerHTML=h;
   if(window.isStaff&&open){
   $('av-c').value=mine.coming===false?'0':'1';$('av-f').value=(mine.from_time||'').slice(0,5);$('av-t').value=(mine.to_time||'').slice(0,5);$('av-s').value=mine.suggested_service||'';$('av-n').value=mine.note||'';
