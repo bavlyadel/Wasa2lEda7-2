@@ -27,3 +27,42 @@ body{transition:background-color .3s,color .3s}html{scroll-behavior:smooth}
 .stat,.btn{transition:transform .2s,filter .15s,box-shadow .2s}.stat:hover{transform:translateY(-3px);box-shadow:0 12px 30px #0003}.btn:active{transform:scale(.97)}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:99px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== القايمة الجانبية + الهيدر + الموبايل ===== */
+.xv-off{display:none!important}
+.topbar{gap:10px}
+.top-actions>img[alt="الكنيسة"]{order:99;margin-inline-start:4px}
+#x-burger{display:none;padding:6px 11px;font-size:18px;line-height:1}
+.x-nav{position:fixed;top:76px;bottom:0;inset-inline-start:0;width:250px;background:var(--p1);border-inline-end:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:4px;overflow:auto;z-index:7}
+#x-nav-list{display:flex;flex-direction:column;gap:3px;flex:1}
+.x-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;border-radius:12px;background:transparent;color:var(--text2);font-size:14px;text-align:start}
+.x-item:hover{background:var(--chip)}.x-item.on{background:var(--tabon);color:#fff}
+.x-badge{margin-inline-start:auto;background:var(--red);color:#fff;border-radius:99px;padding:0 7px;font-size:11px}
+.x-sep{margin:10px 6px 2px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--accent);font-weight:700}
+.x-nav-foot{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.x-nav-foot .btn{width:100%}
+#x-nav-bg{position:fixed;inset:0;background:#0008;z-index:6}
+.dir-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.welcome-row .wl{height:54px;width:auto;object-fit:contain}
+.welcome-row{justify-content:center;flex-wrap:wrap;text-align:center}
+@media(min-width:901px){body.x-has-nav .wrap{padding-inline-start:274px;max-width:1440px}}
+@media(max-width:900px){
+  #x-burger{display:inline-block}
+  .x-nav{top:66px;transform:translateX(110%);transition:transform .25s}
+  .x-nav.open{transform:none}
+  .brand strong,.brand small,.welcome-row .wl{display:none}
+  .brand>img,.top-actions>img{height:38px}
+  #x-theme{max-width:92px}
+}
+@media(max-width:700px){
+  input,select,textarea{font-size:16px}
+  .btn{min-height:42px}
+  #services-panel table{min-width:0}
+  #services-panel thead{display:none}
+  #services-panel tbody tr{display:block;margin:10px;padding:6px 12px;border:1px solid var(--line);border-radius:14px;background:var(--item)}
+  #services-panel td{display:flex;justify-content:space-between;gap:14px;border:0;padding:7px 0;font-size:13px}
+  #services-panel td::before{content:attr(data-label);color:var(--muted);flex:none}
+  #services-panel td.empty{display:block}#services-panel td.empty::before{content:none}
+  dialog{width:96vw}
+  .row-btns .btn{flex:1 1 auto}
+}

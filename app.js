@@ -8,7 +8,7 @@ let currentUser = null, currentProfile = null, authMode = "login", servicesCache
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function message(id, text, error=false){ const el=$(id); el.textContent=text; el.classList.toggle("error",error); }
-function setView(isIn){ $("auth-view").classList.toggle("hidden",isIn); $("app-view").classList.toggle("hidden",!isIn); $("logout").classList.toggle("hidden",!isIn); }
+function setView(isIn){ $("pending-view")&&$("pending-view").classList.add("hidden"); $("auth-view").classList.toggle("hidden",isIn); $("app-view").classList.toggle("hidden",!isIn); $("logout").classList.toggle("hidden",!isIn); }
 function setAuthMode(mode){ authMode=mode; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===mode)); $("name-field").classList.toggle("hidden",mode!=="signup");$("phone-field").classList.toggle("hidden",mode!=="signup");$("forgot").classList.toggle("hidden",mode!=="login"); $("auth-submit").textContent=mode==="login"?"دخول":"إنشاء الحساب"; $("password").autocomplete=mode==="login"?"current-password":"new-password"; message("auth-message",""); }
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setAuthMode(b.dataset.tab)));
 function dateText(d){ if(!d)return "—"; try{return new Intl.DateTimeFormat("ar-EG",{year:"numeric",month:"short",day:"numeric"}).format(new Date(d+"T12:00:00"));}catch{return d;} }
@@ -30,8 +30,8 @@ $("auth-form").addEventListener("submit",async e=>{
     if(authMode==="signup"){
       const full_name=$("full-name").value.trim(); if(!full_name) throw new Error("اكتب اسمك الكامل.");
       const phone=$("phone").value.trim().replace(/[\s-]/g,"");if(!/^01[0125][0-9]{8}$/.test(phone)) throw new Error("اكتب رقم موبايل مصري صحيح (11 رقم).");
-      const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name,phone}}}); if(error)throw error;
-      message("auth-message",data.session?"تم إنشاء الحساب.":"تم إنشاء الحساب. راجع بريدك لتأكيده قبل تسجيل الدخول.");
+      const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name,phone,service_name:($("service-name").value||"").trim()||null,service_keeper:($("service-keeper").value||"").trim()||null}}}); if(error)throw error;
+      message("auth-message","تم إنشاء الحساب. هيتراجع من المسؤولين خلال أقل من 24 ساعة"+(data.session?".":"، وراجع بريدك لتأكيده قبل تسجيل الدخول."));
     }else{const {error}=await db.auth.signInWithPassword({email,password});if(error)throw error;message("auth-message","تم تسجيل الدخول.");}
   }catch(err){message("auth-message",err.message||"حدث خطأ، حاول مرة أخرى.",true);}finally{$("auth-submit").disabled=false;}
 });
@@ -80,9 +80,10 @@ async function deleteRequests(ids){
 }
 async function loadApp(user){
   currentUser=user;
-  const {data:profile,error}=await db.from("profiles").select("id,full_name,role,phone").eq("id",user.id).maybeSingle();
+  const {data:profile,error}=await db.from("profiles").select("id,full_name,role,phone,approved,rejected").eq("id",user.id).maybeSingle();
   if(error){console.error(error);return;}
   currentProfile=profile||{id:user.id,full_name:user.user_metadata?.full_name||user.email,role:"member"};
+  if(currentProfile.approved===false){setView(false);$("auth-view").classList.add("hidden");$("pending-view").classList.remove("hidden");$("pending-title").textContent=currentProfile.rejected?"تم رفض طلب الانضمام":"حسابك بانتظار المراجعة";$("pending-text").textContent=currentProfile.rejected?"تواصل مع المسؤولين لو فاكر إن ده حصل بالغلط.":"تم إنشاء حسابك، وهيتراجع من المسؤولين خلال أقل من 24 ساعة. هتقدر تدخل الموقع بعد الاعتماد.";if(window.xPending)window.xPending();return;}
   setView(true); $("user-label").textContent=currentProfile.full_name||user.email;
   $("greeting").textContent="أهلاً، "+(currentProfile.full_name||"بك");
   const admin=currentProfile.role==="admin";

@@ -53,15 +53,19 @@ async function init(){
 }
 
 // فيديوهات الشرح جوه الموقع: للأعضاء وللخدام (المسؤول يشوف الاتنين)
-function guides(){
-  if(!currentProfile||$('x-guides'))return;
+async function guides(){
+  if(!currentProfile||$('x-guides')||window.__gb)return;window.__gb=1;try{
   const r=currentProfile.role,list=[];
   if(r==='member'||r==='admin')list.push(['شرح استخدام الموقع للأعضاء','assets/member-guide.mp4?v=1']);
   if(r==='server'||r==='admin')list.push(['شرح استخدام الموقع للخدام','assets/server-guide.mp4?v=1']);
   if(!list.length)return;
+  let st={};try{st=Object.fromEntries(((await db.from('app_settings').select('key,value').in('key',['guide_member','guide_server'])).data||[]).map(r=>[r.key,r.value]))}catch{}
+  list.forEach(i=>{const o=st[i[0].includes('للأعضاء')?'guide_member':'guide_server'];if(o&&o.url)i[1]=o.url});
+  if($('x-guides'))return;
   const box=document.createElement('section');box.id='x-guides';box.className='panel pad stack';
   box.innerHTML=list.map(([t,src])=>`<details><summary style="cursor:pointer;font-weight:700">▶ ${t} (فيديو)</summary><video controls preload="none" playsinline style="width:100%;max-width:900px;margin-top:.8rem;border-radius:12px" src="${src}"></video></details>`).join('');
   document.querySelector('#app-view .welcome-row')?.after(box);
+  }finally{window.__gb=0}
 }
 const orig=refreshData;let done=null;
 refreshData=async function(){await orig();guides();if(done!==(currentUser&&currentUser.id)){done=currentUser&&currentUser.id;await init()}else if(!$('x-push')?.innerHTML)render(false)};
