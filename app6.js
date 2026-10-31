@@ -6,7 +6,7 @@ let dirOk=false,pendingN=0,view=sessionStorage.getItem('xview')||'home';
 
 /* ---------- حقول التسجيل ---------- */
 $$('.tab').forEach(b=>b.addEventListener('click',()=>{const s=b.dataset.tab==='signup';['service-field','keeper-field'].forEach(i=>$(i).classList.toggle('hidden',!s))}));
-let t0=Date.now();$('auth-form').insertAdjacentHTML('beforeend','<input id="x-hp" name="x_hp_field" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0">');
+let t0=Date.now();$('auth-form').insertAdjacentHTML('beforeend','<input id="x-hp" class="x-hp" name="x_hp_field" tabindex="-1" autocomplete="off" aria-hidden="true">');
 $$('.tab').forEach(b=>b.addEventListener('click',()=>{t0=Date.now()}));
 document.addEventListener('submit',e=>{
   if(e.target.id!=='auth-form'||document.querySelector('.tab.active')?.dataset.tab!=='signup')return;
@@ -47,9 +47,10 @@ function hero(){
   if(!h){h=document.createElement('section');h.id='x-hero';h.dataset.v='home';const w=document.querySelector('#app-view .welcome-row');if(!w)return;w.after(h)}
   const c=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
   const s=(typeof servicesCache!=='undefined'?servicesCache:[]).filter(x=>x.service_date>=c).sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||'')))[0];
-  const T=[['requests','📨','طلب جديد'],['tools','📦','الأدوات'],['directory','📇','الفهرس'],['secretariat','🏛','الأمانة العامة'],['contacts','📞','أرقام المسؤولين']].filter(([k])=>ITEMS.some(i=>i[0]===k&&shown(i)));
-  h.innerHTML=(s?`<div class="hero-card"><small>الخدمة الجاية</small><div class="hb">${E(s.title)}</div><div>${dateText(s.service_date)} · ${E(t12(s.service_time))}${s.location?' · '+E(s.location):''}</div><div class="row-btns"><button class="btn" id="hr-a">${isStaff()?'سجّل حضورك':'طلب جديد'}</button></div></div>`:'')+`<div class="tiles">${T.map(([k,ic,t])=>`<button type="button" class="tile" data-tg="${k}"><b>${ic}</b>${t}</button>`).join('')}</div>`;
-  $('hr-a')&&($('hr-a').onclick=()=>go(isStaff()?'reg':'requests'));$$('[data-tg]',h).forEach(b=>b.onclick=()=>go(b.dataset.tg));
+  const T=[['reg','✅','تسجيلي لجمعة'],['requests','📨','طلب جديد'],['tools','📦','الأدوات'],['directory','📇','الفهرس'],['secretariat','🏛','الأمانة العامة'],['contacts','📞','أرقام المسؤولين']].filter(([k])=>ITEMS.some(i=>i[0]===k&&shown(i)));
+  h.innerHTML=(s&&isStaff()?`<div class="hero-card"><small>الخدمة الجاية</small><div class="hb">${E(s.title)}</div><div>${dateText(s.service_date)} · ${E(t12(s.service_time))}${s.location?' · '+E(s.location):''}</div>${isStaff()?'<div id="x-join" class="x-join"></div>':'<div class="row-btns"><button class="btn" id="hr-a">طلب جديد</button></div>'}</div>`:'')+`<div class="tiles">${T.map(([k,ic,t])=>`<button type="button" class="tile" data-tg="${k}"><b>${ic}</b>${t}</button>`).join('')}</div>`;
+  $('hr-a')&&($('hr-a').onclick=()=>go('requests'));$$('[data-tg]',h).forEach(b=>b.onclick=()=>go(b.dataset.tg));
+  if(s&&isStaff()&&window.xJoinRender)window.xJoinRender(s);   // زرار "عايز أنزل الخدمة دي" (app7.js)
 }
 const closeNav=()=>{nav.classList.remove('open');bg.classList.add('hidden')};
 burger.onclick=()=>{nav.classList.toggle('open');bg.classList.toggle('hidden',!nav.classList.contains('open'))};
@@ -79,6 +80,7 @@ function buildNav(){
   $('x-nav-list').innerHTML=ok.map(([k,ic,t])=>k==='-'?`<div class="x-sep">${ic}</div>`:`<button type="button" class="x-item ${k===view?'on':''}" data-v="${k}"><span>${ic}</span><span>${t}</span>${k==='approvals'&&pendingN?`<b class="x-badge">${pendingN}</b>`:''}</button>`).join('');
   $$('.x-item',nav).forEach(b=>b.onclick=()=>go(b.dataset.v));buildBnav();
 }
+window.xGo=go;
 function go(v){view=v;try{sessionStorage.setItem('xview',v)}catch{}closeNav();buildNav();apply();if(v==='directory')loadDir();if(v==='secretariat')loadSec();if(v==='approvals')loadAppr();if(v==='settings')loadSet();scrollTo({top:0})}
 
 /* ---------- تقسيم الصفحة لأقسام ---------- */

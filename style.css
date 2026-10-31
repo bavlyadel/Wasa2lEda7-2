@@ -83,6 +83,21 @@ body{transition:background-color .3s,color .3s}html{scroll-behavior:smooth}
 #x-bnav{position:fixed;inset-inline:0;bottom:0;display:flex;background:var(--p1);border-top:1px solid var(--line);padding:6px 4px calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
 #x-bnav button{flex:1;border:0;background:transparent;color:var(--muted);font-size:12px;padding:4px 0}
 #x-bnav button span{display:block;font-size:22px}#x-bnav .on{color:var(--accent)}
-@media(min-width:901px){#x-bnav{display:none!important}.tiles{grid-template-columns:repeat(5,1fr)}}
+@media(min-width:901px){#x-bnav{display:none!important}.tiles{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
 @media(max-width:900px){.wrap{padding-bottom:96px}}
 @media(max-width:700px){body{font-size:16px}}
+
+/* ===== إصلاح الموبايل: الخانة المخفية (honeypot) كانت بـ left:-9999px وده بيوسّع الصفحة في RTL ===== */
+#auth-form{position:relative}
+.x-hp{position:absolute;inset-block-start:0;inset-inline-start:0;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+body:not(.x-has-nav) #x-burger{display:none!important}
+
+/* ===== نزول الخدمة (كارت الخدمة الجاية) ===== */
+.x-join{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.xj-say{margin:0;font-size:19px;font-weight:800;line-height:1.6}
+.x-join small{opacity:.92;line-height:1.7}
+.xj-state{background:#ffffff26;border:1px solid #ffffff44;border-radius:14px;padding:11px 14px;font-weight:700;line-height:1.8}
+.xj-state.ok{background:#12b58266;border-color:#a6f5dbaa}
+.xj-state.no{background:#00000030}
+.hero-card .btn.xj-ghost{background:transparent;color:#fff;border:1px solid #ffffff88;font-size:14px;padding:8px 14px}
+.xj-err{margin:0;font-size:12px;color:#ffe3e6}.xj-err:empty{display:none}
