@@ -29,7 +29,7 @@ $("auth-form").addEventListener("submit",async e=>{
   try{
     if(authMode==="signup"){
       const full_name=$("full-name").value.trim(); if(!full_name) throw new Error("اكتب اسمك الكامل.");
-      const phone=$("phone").value.trim().replace(/[\s-]/g,"");if(!/^01[0125][0-9]{8}$/.test(phone)) throw new Error("اكتب رقم موبايل مصري صحيح (11 رقم).");
+      const raw=$("phone").value.replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g,"").replace(/^(00)?20(?=1)/,"").replace(/^0/,"");if(!/^1[0125][0-9]{8}$/.test(raw)) throw new Error("اكتب رقم موبايل مصري صحيح (10 أرقام بعد +20).");const phone="+20"+raw;
       const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name,phone,service_name:($("service-name").value||"").trim()||null,service_keeper:($("service-keeper").value||"").trim()||null}}}); if(error)throw error;
       message("auth-message","تم إنشاء الحساب. هيتراجع من المسؤولين خلال أقل من 24 ساعة"+(data.session?".":"، وراجع بريدك لتأكيده قبل تسجيل الدخول."));
     }else{const {error}=await db.auth.signInWithPassword({email,password});if(error)throw error;message("auth-message","تم تسجيل الدخول.");}

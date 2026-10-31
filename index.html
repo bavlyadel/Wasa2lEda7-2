@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#111827">
-  <script>try{var t=localStorage.getItem("theme")||"dark";document.documentElement.dataset.theme=t==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):t}catch(e){}</script>
+  <script src="theme-boot.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="apple-touch-icon" href="assets/logo-wasael.png">
@@ -34,10 +34,10 @@
         <form id="auth-form">
           <label>البريد الإلكتروني<input id="email" type="email" required placeholder="name@example.com" autocomplete="email"></label>
           <label>كلمة المرور<input id="password" type="password" required minlength="8" placeholder="٨ أحرف على الأقل" autocomplete="current-password"></label>
-          <label id="name-field" class="hidden">الاسم الكامل<input id="full-name" type="text" placeholder="اكتب اسمك"></label>
-          <label id="phone-field" class="hidden">رقم الموبايل<input id="phone" type="tel" inputmode="numeric" placeholder="01012345678" autocomplete="tel"></label>
-          <label id="service-field" class="hidden">خادم بخدمة (اختياري)<input id="service-name" type="text" maxlength="120" placeholder="اسم الخدمة"></label>
-          <label id="keeper-field" class="hidden">أمين الخدمة (اختياري)<input id="service-keeper" type="text" maxlength="120" placeholder="اسم أمين الخدمة"></label>
+          <label id="name-field" class="hidden">الاسم الكامل *<input id="full-name" type="text" placeholder="اكتب اسمك"></label>
+          <label id="phone-field" class="hidden">رقم الموبايل *<div class="phone-row"><span class="cc">+20 🇪🇬</span><input id="phone" type="tel" inputmode="numeric" placeholder="1012345678" autocomplete="tel-national"></div><small class="muted">اكتب الرقم من غير الصفر، أو بالصفر عادي والموقع يظبطه</small></label>
+          <label id="service-field" class="hidden">خادم بخدمة *<input id="service-name" type="text" maxlength="120" placeholder="اسم الخدمة"></label>
+          <label id="keeper-field" class="hidden">أمين الخدمة *<input id="service-keeper" type="text" maxlength="120" placeholder="اسم أمين الخدمة"></label>
           <button id="auth-submit" class="btn primary wide" type="submit">دخول</button>
           <button id="forgot" class="btn ghost wide" type="button">نسيت كلمة السر؟</button>
           <p id="auth-message" class="message" aria-live="polite"></p>
@@ -92,11 +92,11 @@
     </section>
     <footer>وسائل إيضاح <span>•</span> منصة تنظيم الخدمات</footer>
   </main>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
   <script src="app2.js?v=8"></script>
   <script src="app3.js?v=7"></script>
   <script src="app4.js?v=7"></script>
   <script src="app5.js?v=1"></script>
-  <script src="app6.js?v=1"></script>
+  <script src="app6.js?v=3"></script>
 </body>
 </html>

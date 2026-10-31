@@ -66,3 +66,23 @@ body{transition:background-color .3s,color .3s}html{scroll-behavior:smooth}
   dialog{width:96vw}
   .row-btns .btn{flex:1 1 auto}
 }
+.mm{min-width:380px}.mm th,.mm td{text-align:center}.mm td:first-child,.mm th:first-child{text-align:start}
+.mm input[type=checkbox]{width:20px;height:20px;padding:0}
+
+/* ===== رقم الموبايل + الصفحة الرئيسية + شريط التنقل السفلي ===== */
+.phone-row{display:flex;gap:6px;direction:ltr}
+.phone-row .cc{display:inline-flex;align-items:center;background:var(--chip);border:1px solid var(--line2);border-radius:10px;padding:0 13px;font-size:15px;white-space:nowrap;color:var(--text)}
+.phone-row input{flex:1;text-align:left}
+.hero-card{background:linear-gradient(135deg,var(--blue2),var(--blue));border-radius:20px;padding:18px;color:#fff;display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.hero-card small{opacity:.9}.hero-card .hb{font-size:23px;font-weight:800}
+.hero-card .btn{background:#fff;color:#1d3f9e;border:0;font-size:16px;padding:12px 20px;font-weight:700}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.tile{background:var(--p1);border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center;color:var(--text);font-size:15px;transition:transform .2s}
+.tile:hover{transform:translateY(-2px)}.tile b{display:block;font-size:28px;font-weight:400;margin-bottom:2px}
+.welcome-row{background:linear-gradient(135deg,var(--h1),var(--h2));border:1px solid var(--line);border-radius:20px;padding:14px 20px}
+#x-bnav{position:fixed;inset-inline:0;bottom:0;display:flex;background:var(--p1);border-top:1px solid var(--line);padding:6px 4px calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
+#x-bnav button{flex:1;border:0;background:transparent;color:var(--muted);font-size:12px;padding:4px 0}
+#x-bnav button span{display:block;font-size:22px}#x-bnav .on{color:var(--accent)}
+@media(min-width:901px){#x-bnav{display:none!important}.tiles{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:900px){.wrap{padding-bottom:96px}}
+@media(max-width:700px){body{font-size:16px}}
