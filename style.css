@@ -101,3 +101,14 @@ body:not(.x-has-nav) #x-burger{display:none!important}
 .xj-state.no{background:#00000030}
 .hero-card .btn.xj-ghost{background:transparent;color:#fff;border:1px solid #ffffff88;font-size:14px;padding:8px 14px}
 .xj-err{margin:0;font-size:12px;color:#ffe3e6}.xj-err:empty{display:none}
+
+/* v5: إصلاح تزحزح الصفحة على الموبايل (القايمة الجانبية المقفولة بتوسّع الصفحة) + شكل مربعات الاختيار */
+html,body{max-width:100%;overflow-x:clip}
+@media(max-width:900px){
+  .x-nav{transition:transform .25s,visibility 0s linear .25s}
+  .x-nav:not(.open){visibility:hidden;pointer-events:none}
+  .x-nav.open{visibility:visible;pointer-events:auto;transition:transform .25s,visibility 0s}
+}
+label.chk{flex-direction:row;align-items:center}
+.chk input[type=checkbox],.chk input[type=radio]{width:auto;flex:none;margin:0}
+.table-scroll{max-width:100%;overflow-x:auto}

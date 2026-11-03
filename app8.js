@@ -69,12 +69,12 @@ async function injectSet(el){
   const box=document.createElement('div');box.id='x-rem';box.className='stack';
   box.innerHTML=`<hr style="border:0;border-top:1px solid var(--line);width:100%"><h2>⏰ تذكير المكلّفين بالخدمة</h2>
   <p class="muted">بيوصل إشعار لكل خادم مكلّف بخدمة قريبة، وبيتكرر كل فترة إنت بتحددها لحد ما تعدّي الخدمة.</p>
-  <label class="chk" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="rm-on" ${r.on?'checked':''}> تفعيل التذكير التلقائي</label>
+  <label class="chk"><input type="checkbox" id="rm-on" ${r.on?'checked':''}> تفعيل التذكير التلقائي</label>
   <div class="two-col"><label>التكرار<select id="rm-h">${opt(HRS,r.hours||24)}</select></label><label>للخدمات اللي في خلال<select id="rm-d">${opt(DAYS,r.days||7)}</select></label></div>
   <div class="row-btns"><button class="btn primary" id="rm-save" type="button">حفظ</button><button class="btn" id="rm-now" type="button">🔔 ذكّر المكلّفين دلوقتي</button></div>
   <p class="muted" id="rm-last">آخر تذكير تلقائي: ${last}</p><p class="message" id="rm-msg"></p>
   <hr style="border:0;border-top:1px solid var(--line);width:100%"><h2>🔔 الإشعارات الإجبارية</h2>
-  <label class="chk" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="pr-on" ${req?'checked':''}> إجبار كل المستخدمين على تفعيل إشعارات الموبايل قبل استخدام الموقع</label><p class="message" id="pr-msg"></p>`;
+  <label class="chk"><input type="checkbox" id="pr-on" ${req?'checked':''}> إجبار كل المستخدمين على تفعيل إشعارات الموبايل قبل استخدام الموقع</label><p class="message" id="pr-msg"></p>`;
   el.appendChild(box);
   const say=(id,t,e)=>{const m=$(id);m.textContent=t;m.classList.toggle('error',!!e)};
   $('rm-save').onclick=async()=>{const x=await db.rpc('set_reminder',{p_on:$('rm-on').checked,p_hours:+$('rm-h').value,p_days:+$('rm-d').value});say('rm-msg',x.error?x.error.message:'تم الحفظ.',!!x.error)};
