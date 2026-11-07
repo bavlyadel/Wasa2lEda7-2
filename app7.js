@@ -3,33 +3,35 @@
 (function(){
 const E=escapeHtml, TYPE='نزول خدمة';
 const isAdmin=()=>currentProfile&&currentProfile.role==='admin', isServer=()=>currentProfile&&currentProfile.role==='server';
-let mine=[],pend=[],loaded=false,nextS=null;
+let mine=[],pend=[],loaded=false,nextL=[];
 
-/* ---------- كارت الخدمة الجاية ---------- */
-window.xJoinRender=function(s){nextS=s||null;paint()};
+/* ---------- كارت الخدمة الجاية (ممكن فيه أكتر من خدمة في نفس الوقت، وكل واحدة ليها زرارها) ---------- */
+window.xJoinRender=function(L){nextL=Array.isArray(L)?L:(L?[L]:[]);paint()};
 function paint(){
-  const box=$('x-join');if(!box||!nextS)return;
-  if(!loaded){box.innerHTML='';return}
-  if(isAdmin()){
-    const n=pend.length;
-    box.innerHTML=`<p class="xj-say">${n?`📥 طلبات النزول المستنية ردّك: ${n}`:'مفيش طلبات نزول جديدة 🙏'}</p><div class="row-btns"><button class="btn" id="xj-adm" type="button">راجع طلبات النزول للخدمة</button></div>`;
-    $('xj-adm').onclick=()=>window.xGo&&window.xGo('admin');return;
-  }
-  const r=mine.find(x=>x.service_id==nextS.id);
-  if(!r){
-    box.innerHTML=`<p class="xj-say">نفسك تنزل الخدمة دي؟ 🙏</p><div class="row-btns"><button class="btn" id="xj-go" type="button">🙋 عايز أنزل الخدمة دي</button></div><small>طلبك بيوصل للمسؤول، وهيرد عليك بالموافقة أو الاعتذار.</small><p class="xj-err" id="xj-m"></p>`;
-    $('xj-go').onclick=send;
-  }else if(r.status==='approved'){
-    box.innerHTML=`<div class="xj-state ok">✅ اتوافق على نزولك الخدمة دي، ربنا يبارك خدمتك 🙏</div>`;
-  }else if(r.status==='rejected'){
-    box.innerHTML=`<div class="xj-state no">المسؤول اعتذر عن نزولك الخدمة دي المرة دي 🙏<br><small>لو محتاج توضيح كلّمه من «أرقام المسؤولين».</small></div>`;
-  }else{
-    box.innerHTML=`<div class="xj-state">⏳ طلبك وصل للمسؤول، مستنيين ردّه</div><div class="row-btns"><button class="btn xj-ghost" id="xj-x" type="button">إلغاء الطلب</button></div>`;
-    $('xj-x').onclick=async()=>{if(!confirm('إلغاء طلب النزول للخدمة دي؟'))return;await db.from('service_requests').delete().eq('id',r.id).eq('status','pending');refreshData()};
-  }
+  document.querySelectorAll('.x-join[data-sid]').forEach(box=>{
+    const s=nextL.find(x=>x.id==box.dataset.sid);if(!s)return;
+    if(!loaded){box.innerHTML='';return}
+    if(isAdmin()){
+      const n=pend.filter(r=>r.service_id==s.id).length;
+      box.innerHTML=`<p class="xj-say">${n?`📥 طلبات النزول المستنية ردّك: ${n}`:'مفيش طلبات نزول جديدة 🙏'}</p><div class="row-btns"><button class="btn xj-adm" type="button">راجع طلبات النزول للخدمة</button></div>`;
+      box.querySelector('.xj-adm').onclick=()=>window.xGo&&window.xGo('admin');return;
+    }
+    const r=mine.find(x=>x.service_id==s.id);
+    if(!r){
+      box.innerHTML=`<p class="xj-say">نفسك تنزل ${nextL.length>1?'«'+E(s.title)+'»':'الخدمة دي'}؟ 🙏</p><div class="row-btns"><button class="btn xj-go" type="button">🙋 عايز أنزل ${nextL.length>1?'الخدمة دي':'الخدمة دي'}</button></div><small>طلبك بيوصل للمسؤول، وهيرد عليك بالموافقة أو الاعتذار.</small><p class="xj-err"></p>`;
+      box.querySelector('.xj-go').onclick=()=>send(s,box);
+    }else if(r.status==='approved'){
+      box.innerHTML=`<div class="xj-state ok">✅ اتوافق على نزولك الخدمة دي، ربنا يبارك خدمتك 🙏</div>`;
+    }else if(r.status==='rejected'){
+      box.innerHTML=`<div class="xj-state no">المسؤول اعتذر عن نزولك الخدمة دي المرة دي 🙏<br><small>لو محتاج توضيح كلّمه من «أرقام المسؤولين».</small></div>`;
+    }else{
+      box.innerHTML=`<div class="xj-state">⏳ طلبك وصل للمسؤول، مستنيين ردّه</div><div class="row-btns"><button class="btn xj-ghost" type="button">إلغاء الطلب</button></div>`;
+      box.querySelector('.xj-ghost').onclick=async()=>{if(!confirm('إلغاء طلب النزول للخدمة دي؟'))return;await db.from('service_requests').delete().eq('id',r.id).eq('status','pending');refreshData()};
+    }
+  });
 }
-async function send(){
-  const b=$('xj-go'),m=$('xj-m'),s=nextS;if(!b||!s)return;b.disabled=true;m.textContent='';
+async function send(s,box){
+  const b=box.querySelector('.xj-go'),m=box.querySelector('.xj-err');if(!b||!s)return;b.disabled=true;m.textContent='';
   const r=await db.from('service_requests').insert({user_id:currentUser.id,request_type:TYPE,service_id:s.id,details:`عايز أنزل «${s.title}» يوم ${dateText(s.service_date)}`});
   if(r.error&&r.error.code!=='23505'){b.disabled=false;m.textContent='تعذر إرسال الطلب: '+r.error.message;return}   // 23505 = الطلب اتبعت قبل كده
   await refreshData();

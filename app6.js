@@ -42,15 +42,27 @@ const SHORT={home:'الرئيسية',requests:'طلباتي',directory:'الفه
 function buildBnav(){const ok=ITEMS.filter(shown).map(i=>i[0]),pick=['home','requests',ok.includes('directory')?'directory':'contacts'].filter(k=>ok.includes(k));
   bn.innerHTML=pick.map(k=>`<button type="button" class="${k===view?'on':''}" data-b="${k}"><span>${ITEMS.find(x=>x[0]===k)[1]}</span>${SHORT[k]}</button>`).join('')+'<button type="button" data-b="__menu"><span>☰</span>القايمة</button>';
   $$('[data-b]',bn).forEach(b=>b.onclick=()=>b.dataset.b==='__menu'?burger.click():go(b.dataset.b))}
+/* ---------- مربع "الخدمة الجاية": بيطلع على الخدمة اللي بعدها أول ما الأولى تخلص ---------- */
+let nextCfg={},heroSig='';
+function cairoNow(){const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return{d:`${p.year}-${p.month}-${p.day}`,m:+p.hour*60+ +p.minute}}
+const toMin=t=>{const a=(t||'00:00').split(':');return (+a[0]||0)*60+(+a[1]||0)};
+function nextSlots(){
+  const n=cairoNow(),dur=+nextCfg.duration||120,fri=!!nextCfg.friday_only;
+  const all=(typeof servicesCache!=='undefined'?servicesCache:[]).slice().sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||'')));
+  const live=all.filter(x=>(x.service_date>n.d||(x.service_date===n.d&&toMin(x.service_time)+dur>n.m))&&(!fri||new Date(x.service_date+'T12:00:00Z').getUTCDay()===5));
+  if(!live.length)return[];const f=live[0];
+  return live.filter(x=>x.service_date===f.service_date&&(x.service_time||'').slice(0,5)===(f.service_time||'').slice(0,5));
+}
+setInterval(()=>{if(currentProfile&&$('x-hero')&&nextSlots().map(x=>x.id).join(',')!==heroSig)hero()},60000);
 function hero(){
   if(!currentProfile)return;let h=$('x-hero');
   if(!h){h=document.createElement('section');h.id='x-hero';h.dataset.v='home';const w=document.querySelector('#app-view .welcome-row');if(!w)return;w.after(h)}
-  const c=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
-  const s=(typeof servicesCache!=='undefined'?servicesCache:[]).filter(x=>x.service_date>=c).sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||'')))[0];
+  const L=nextSlots(),s=L[0];
+  const sig=L.map(x=>x.id).join(',');heroSig=sig;
   const T=[['reg','✅','تسجيلي لجمعة'],['requests','📨','طلب جديد'],['tools','📦','الأدوات'],['directory','📇','الفهرس'],['secretariat','🏛','الأمانة العامة'],['contacts','📞','أرقام المسؤولين']].filter(([k])=>ITEMS.some(i=>i[0]===k&&shown(i)));
-  h.innerHTML=(s&&isStaff()?`<div class="hero-card"><small>الخدمة الجاية</small><div class="hb">${E(s.title)}</div><div>${dateText(s.service_date)} · ${E(t12(s.service_time))}${s.location?' · '+E(s.location):''}</div>${isStaff()?'<div id="x-join" class="x-join"></div>':'<div class="row-btns"><button class="btn" id="hr-a">طلب جديد</button></div>'}</div>`:'')+`<div class="tiles">${T.map(([k,ic,t])=>`<button type="button" class="tile" data-tg="${k}"><b>${ic}</b>${t}</button>`).join('')}</div>`;
+  h.innerHTML=(s&&isStaff()?`<div class="hero-card"><small>${L.length>1?'الخدمات الجاية — في نفس الوقت، اختار اللي عايز تنزلها':'الخدمة الجاية'}</small>${L.map(x=>`<div class="xj-svc"><div class="hb">${E(x.title)}</div><div>${dateText(x.service_date)} · ${E(t12(x.service_time))}${x.location?' · '+E(x.location):''}</div><div class="x-join" data-sid="${x.id}"></div></div>`).join('')}</div>`:'')+`<div class="tiles">${T.map(([k,ic,t])=>`<button type="button" class="tile" data-tg="${k}"><b>${ic}</b>${t}</button>`).join('')}</div>`;
   $('hr-a')&&($('hr-a').onclick=()=>go('requests'));$$('[data-tg]',h).forEach(b=>b.onclick=()=>go(b.dataset.tg));
-  if(s&&isStaff()&&window.xJoinRender)window.xJoinRender(s);   // زرار "عايز أنزل الخدمة دي" (app7.js)
+  if(s&&isStaff()&&window.xJoinRender)window.xJoinRender(L);   // زرار "عايز أنزل الخدمة دي" (app7.js)
 }
 const closeNav=()=>{nav.classList.remove('open');bg.classList.add('hidden')};
 burger.onclick=()=>{nav.classList.toggle('open');bg.classList.toggle('hidden',!nav.classList.contains('open'))};
@@ -71,7 +83,8 @@ const ITEMS=[
 ['-','للمسؤول فقط','',ADM],
 ['approvals','🛡','اعتماد الحسابات',ADM],
 ['admin','⚙️','إدارة الموقع والجدول',ADM],
-['settings','🎛','الفهرس والفيديو والقوايم',ADM]];
+['settings','🎛','الفهرس والفيديو والقوايم',ADM],
+['attendance','🧾','الحضور والغياب',ADM]];
 let menuCfg={};
 const hiddenFor=(k,r)=>(menuCfg[k]||[]).includes(r)&&!(k==='settings'&&r==='admin');
 const shown=i=>i[3].includes(role())&&!hiddenFor(i[0],role())&&(i[0]!=='directory'||dirOk);
@@ -80,8 +93,8 @@ function buildNav(){
   $('x-nav-list').innerHTML=ok.map(([k,ic,t])=>k==='-'?`<div class="x-sep">${ic}</div>`:`<button type="button" class="x-item ${k===view?'on':''}" data-v="${k}"><span>${ic}</span><span>${t}</span>${k==='approvals'&&pendingN?`<b class="x-badge">${pendingN}</b>`:''}</button>`).join('');
   $$('.x-item',nav).forEach(b=>b.onclick=()=>go(b.dataset.v));buildBnav();
 }
-window.xGo=go;
-function go(v){view=v;try{sessionStorage.setItem('xview',v)}catch{}closeNav();buildNav();apply();if(v==='directory')loadDir();if(v==='secretariat')loadSec();if(v==='approvals')loadAppr();if(v==='settings')loadSet();scrollTo({top:0})}
+window.xGo=go;window.xEnsure=function(id){return ensure(id)};
+function go(v){view=v;try{sessionStorage.setItem('xview',v)}catch{}closeNav();buildNav();apply();if(v==='directory')loadDir();if(v==='secretariat')loadSec();if(v==='approvals')loadAppr();if(v==='settings')loadSet();if(v==='attendance'&&window.xLoadAtt)window.xLoadAtt();scrollTo({top:0})}
 
 /* ---------- تقسيم الصفحة لأقسام ---------- */
 const BY_ID={'x-guides':'video','stats':'home','services-heading':'home','services-panel':'home','admin-panel':'admin'};
@@ -104,7 +117,7 @@ new MutationObserver(sched).observe($('app-view'),{childList:true,subtree:true})
 const syncNav=()=>{const on=!$('app-view').classList.contains('hidden');nav.classList.toggle('hidden',!on);bn.classList.toggle('hidden',!on);document.body.classList.toggle('x-has-nav',on);if(!on)closeNav();if(on&&currentProfile){buildNav();sched()}};
 new MutationObserver(syncNav).observe($('app-view'),{attributes:true,attributeFilter:['class']});
 
-function ensure(id){let e=$(id);if(!e){e=document.createElement('section');e.id=id;e.className='panel pad stack';e.dataset.v={'x-dir':'directory','x-appr':'approvals','x-set':'settings','x-sec':'secretariat'}[id];$('app-view').insertBefore(e,document.querySelector('#app-view footer')||null)}return e}
+function ensure(id){let e=$(id);if(!e){e=document.createElement('section');e.id=id;e.className='panel pad stack';e.dataset.v={'x-dir':'directory','x-appr':'approvals','x-set':'settings','x-sec':'secretariat','x-att':'attendance'}[id];$('app-view').insertBefore(e,document.querySelector('#app-view footer')||null)}return e}
 const wa=p=>{let d=(p||'').replace(/\D/g,'');if(d.startsWith('0'))d='20'+d.slice(1);return 'https://wa.me/'+d};
 const ct=p=>p.phone?`<div class="row-btns"><a class="btn" href="tel:${E(p.phone)}">اتصال</a><a class="btn ghost" href="${wa(p.phone)}" target="_blank" rel="noopener">واتساب</a></div>`:'';
 
@@ -117,11 +130,19 @@ async function loadDir(){
   if(isAdmin()){m=(await db.rpc('members_directory')).data||[]}
   const tabs=isAdmin()?['الخدام','أعضاء الخدمات (للمسؤولين فقط)']:['الخدام'];if(dirTab>=tabs.length)dirTab=0;
   let body='';
-  if(dirTab===0)body=`<div class="dir-grid">${d.map(p=>`<article class="request-item"><strong>${E(p.full_name||'—')}</strong>${p.role==='admin'?' <span class="status approved">مسؤول</span>':''}<p style="margin:6px 0 0">${p.service_name?'خادم بخدمة: '+E(p.service_name):''}${p.service_keeper?'<br>أمين الخدمة: '+E(p.service_keeper):''}</p>${ct(p)}</article>`).join('')||'<p class="empty">لا يوجد خدام في الفهرس.</p>'}</div>`;
+  if(dirTab===0)body=`<div class="dir-grid">${d.map(p=>`<article class="request-item"><strong>${E(p.full_name||'—')}</strong>${p.role==='admin'?' <span class="status approved">مسؤول</span>':''}<p style="margin:6px 0 0">${p.service_name?'خادم بخدمة: '+E(p.service_name):''}${p.service_keeper?'<br>أمين الخدمة: '+E(p.service_keeper):''}</p>${ct(p)}${isAdmin()?`<div class="row-btns"><button class="btn ghost" data-em="${p.id}">✏️ تعديل</button></div>`:''}</article>`).join('')||'<p class="empty">لا يوجد خدام في الفهرس.</p>'}</div>`;
   else{const g={};m.forEach(p=>{const k=(p.service_name||'').trim();(g[k]=g[k]||[]).push(p)});
-    body=`<p class="muted">للمعرفة فقط، منفصل عن جدول الخدمات. التقسيم حسب اللي كتبه كل واحد في التسجيل.</p><div class="dir-grid">${Object.keys(g).sort().map(k=>`<div class="request-item"><div class="request-top"><strong>${E(k||'بدون خدمة')}</strong><span class="status">${g[k].length}</span></div>${g[k].map(p=>`<p style="margin:8px 0 0"><b>${E(p.full_name||'—')}</b> <span class="muted">${p.role==='server'?'(خادم)':'(عضو)'}</span>${p.service_keeper?'<br><span class="muted">أمين الخدمة: '+E(p.service_keeper)+'</span>':''}</p>${ct(p)}`).join('')}<div class="row-btns"><button class="btn ghost" data-rn="${E(k)}">تعديل اسم الخدمة</button></div></div>`).join('')||'<p class="empty">مفيش بيانات.</p>'}</div>`}
+    body=`<p class="muted">للمعرفة فقط، منفصل عن جدول الخدمات. التقسيم حسب اللي كتبه كل واحد في التسجيل.</p><div class="dir-grid">${Object.keys(g).sort().map(k=>`<div class="request-item"><div class="request-top"><strong>${E(k||'بدون خدمة')}</strong><span class="status">${g[k].length}</span></div>${g[k].map(p=>`<p style="margin:8px 0 0"><b>${E(p.full_name||'—')}</b> <span class="muted">${p.role==='server'?'(خادم)':'(عضو)'}</span>${p.service_keeper?'<br><span class="muted">أمين الخدمة: '+E(p.service_keeper)+'</span>':''}</p>${ct(p)}<div class="row-btns"><button class="btn ghost" data-em="${p.id}">✏️ تعديل</button></div>`).join('')}<div class="row-btns"><button class="btn ghost" data-rn="${E(k)}">تعديل اسم الخدمة</button></div></div>`).join('')||'<p class="empty">مفيش بيانات.</p>'}</div>`}
   el.innerHTML=`<h2>📇 فهرس الخدام</h2>${tabs.length>1?`<div class="row-btns">${tabs.map((t,i)=>`<button class="btn ${i===dirTab?'primary':'ghost'}" data-dt="${i}">${t}</button>`).join('')}</div>`:''}${body}`;
   $$('[data-dt]',el).forEach(b=>b.onclick=()=>{dirTab=+b.dataset.dt;loadDir()});
+  $$('[data-em]',el).forEach(b=>b.onclick=async()=>{
+    const p=[...d,...m].find(x=>x.id===b.dataset.em);if(!p)return;
+    const nm=prompt('الاسم',p.full_name||'');if(nm===null)return;
+    const ph=prompt('رقم التليفون',p.phone||'');if(ph===null)return;
+    const sv=prompt('الخدمة (سيبها فاضية لو مفيش):',p.service_name||'');if(sv===null)return;
+    const kp=prompt('أمين الخدمة (سيبها فاضية لو مفيش):',p.service_keeper||'');if(kp===null)return;
+    const x=await db.rpc('admin_update_member',{p_id:p.id,p_name:nm,p_phone:ph,p_service:sv,p_keeper:kp});
+    if(x.error)alert(x.error.message);else loadDir()});
   $$('[data-rn]',el).forEach(b=>b.onclick=async()=>{const n=prompt('الاسم الجديد للخدمة (نفس الاسم لدمج خدمتين):',b.dataset.rn);if(n===null)return;const x=await db.rpc('rename_service',{p_old:b.dataset.rn,p_new:n});if(x.error)alert(x.error.message);else loadDir()});
 }
 async function loadSec(){
@@ -181,7 +202,7 @@ async function dirChanged(){dirOk=!!(await db.rpc('directory_access')).data;buil
 const orig=refreshData;
 refreshData=async function(){
   await orig();if(!currentProfile)return;
-  try{const ms=await db.from('app_settings').select('value').eq('key','menu').maybeSingle();menuCfg=(ms.data&&ms.data.value)||{}}catch{}
+  try{const ms=await db.from('app_settings').select('value').eq('key','menu').maybeSingle();menuCfg=(ms.data&&ms.data.value)||{};const nc=await db.from('app_settings').select('value').eq('key','next_card').maybeSingle();nextCfg=(nc.data&&nc.data.value)||{}}catch{}
   saveSignup();dirOk=!!(await db.rpc('directory_access')).data;
   if(isAdmin()){const r=await db.from('profiles').select('id',{count:'exact',head:true}).eq('approved',false).eq('rejected',false);pendingN=r.count||0}
   buildNav();sched();

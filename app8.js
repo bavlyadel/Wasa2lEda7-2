@@ -53,6 +53,7 @@ async function remind(){
   if(n-l<600000)return;
   try{localStorage.setItem(k,String(n))}catch{}
   try{await db.rpc('send_reminders',{p_force:false})}catch{}
+  try{await db.rpc('send_reg_reminders',{p_force:false})}catch{}
 }
 
 /* ---------- 3) صفحة الإعدادات: التذكير + إجبار الإشعارات ---------- */
@@ -61,9 +62,9 @@ const DAYS=[[1,'يوم'],[2,'يومين'],[3,'٣ أيام'],[5,'٥ أيام'],[7
 async function injectSet(el){
   if(!isAdm()||el.querySelector('#x-rem'))return;
   el.dataset.xr='1';
-  const s=await db.from('app_settings').select('key,value').in('key',['reminder','push_required']);
+  const s=await db.from('app_settings').select('key,value').in('key',['reminder','push_required','reg_reminder']);
   if(el.querySelector('#x-rem'))return;
-  const st=Object.fromEntries((s.data||[]).map(r=>[r.key,r.value])),r=st.reminder||{},req=!(st.push_required&&st.push_required.on===false);
+  const st=Object.fromEntries((s.data||[]).map(r=>[r.key,r.value])),r=st.reminder||{},rg=st.reg_reminder||{},req=!(st.push_required&&st.push_required.on===false);
   const opt=(a,v)=>a.map(([k,t])=>`<option value="${k}" ${k==v?'selected':''}>${t}</option>`).join('');
   const last=r.last_run?new Date(r.last_run).toLocaleString('ar-EG'):'لسه محصلش';
   const box=document.createElement('div');box.id='x-rem';box.className='stack';
@@ -73,6 +74,12 @@ async function injectSet(el){
   <div class="two-col"><label>التكرار<select id="rm-h">${opt(HRS,r.hours||24)}</select></label><label>للخدمات اللي في خلال<select id="rm-d">${opt(DAYS,r.days||7)}</select></label></div>
   <div class="row-btns"><button class="btn primary" id="rm-save" type="button">حفظ</button><button class="btn" id="rm-now" type="button">🔔 ذكّر المكلّفين دلوقتي</button></div>
   <p class="muted" id="rm-last">آخر تذكير تلقائي: ${last}</p><p class="message" id="rm-msg"></p>
+  <hr style="border:0;border-top:1px solid var(--line);width:100%"><h2>📝 تذكير تسجيل الجمعة</h2>
+  <p class="muted">بيفكّر الخدام اللي لسه ما سجّلوش في «تسجيلي لجمعة» كل فترة، وبس وباب التسجيل مفتوح (لحد الأربع ١٢ ظهرًا).</p>
+  <label class="chk"><input type="checkbox" id="rg-on" ${rg.on?'checked':''}> تفعيل التذكير التلقائي</label>
+  <label>التكرار<select id="rg-h">${opt(HRS,rg.hours||12)}</select></label>
+  <div class="row-btns"><button class="btn primary" id="rg-save" type="button">حفظ</button><button class="btn" id="rg-now" type="button">🔔 ذكّر اللي ما سجّلوش دلوقتي</button></div>
+  <p class="muted">آخر تذكير تلقائي: ${rg.last_run?new Date(rg.last_run).toLocaleString('ar-EG'):'لسه محصلش'}</p><p class="message" id="rg-msg"></p>
   <hr style="border:0;border-top:1px solid var(--line);width:100%"><h2>🔔 الإشعارات الإجبارية</h2>
   <label class="chk"><input type="checkbox" id="pr-on" ${req?'checked':''}> إجبار كل المستخدمين على تفعيل إشعارات الموبايل قبل استخدام الموقع</label><p class="message" id="pr-msg"></p>`;
   el.appendChild(box);
@@ -82,6 +89,11 @@ async function injectSet(el){
     if(!confirm('إرسال تذكير فوري لكل المكلّفين بخدمات الفترة دي؟'))return;
     const x=await db.rpc('send_reminders',{p_force:true});
     say('rm-msg',x.error?x.error.message:(x.data?`تم إرسال ${x.data} تذكير.`:'مفيش مكلّفين بخدمات في الفترة دي.'),!!x.error)};
+  $('rg-save').onclick=async()=>{const x=await db.rpc('set_reg_reminder',{p_on:$('rg-on').checked,p_hours:+$('rg-h').value});say('rg-msg',x.error?x.error.message:'تم الحفظ.',!!x.error)};
+  $('rg-now').onclick=async()=>{
+    if(!confirm('إرسال تذكير فوري لكل الخدام اللي لسه ما سجّلوش؟'))return;
+    const x=await db.rpc('send_reg_reminders',{p_force:true});
+    say('rg-msg',x.error?x.error.message:(x.data?`تم إرسال ${x.data} تذكير.`:'الكل مسجّل، مفيش حد يتذكّر.'),!!x.error)};
   $('pr-on').onchange=async e=>{const x=await db.rpc('set_setting',{p_key:'push_required',p_value:{on:e.target.checked}});
     say('pr-msg',x.error?x.error.message:'تم الحفظ.',!!x.error);if(!x.error){required=e.target.checked;tick()}else e.target.checked=!e.target.checked};
 }

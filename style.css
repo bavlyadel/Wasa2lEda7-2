@@ -112,3 +112,7 @@ html,body{max-width:100%;overflow-x:clip}
 label.chk{flex-direction:row;align-items:center}
 .chk input[type=checkbox],.chk input[type=radio]{width:auto;flex:none;margin:0}
 .table-scroll{max-width:100%;overflow-x:auto}
+
+/* v7: أكتر من خدمة في نفس الوقت جوه مربع الخدمة الجاية */
+.hero-card .xj-svc{padding:10px 0}
+.hero-card .xj-svc+.xj-svc{border-top:1px solid #ffffff44;margin-top:6px;padding-top:14px}
