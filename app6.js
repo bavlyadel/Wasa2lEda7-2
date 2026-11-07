@@ -47,9 +47,9 @@ let nextCfg={},heroSig='';
 function cairoNow(){const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return{d:`${p.year}-${p.month}-${p.day}`,m:+p.hour*60+ +p.minute}}
 const toMin=t=>{const a=(t||'00:00').split(':');return (+a[0]||0)*60+(+a[1]||0)};
 function nextSlots(){
-  const n=cairoNow(),dur=+nextCfg.duration||120,fri=!!nextCfg.friday_only;
+  const n=cairoNow(),dur=+nextCfg.duration||120,mode=nextCfg.mode||(nextCfg.friday_only?'friday_only':'all');
   const all=(typeof servicesCache!=='undefined'?servicesCache:[]).slice().sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||'')));
-  const live=all.filter(x=>(x.service_date>n.d||(x.service_date===n.d&&toMin(x.service_time)+dur>n.m))&&(!fri||new Date(x.service_date+'T12:00:00Z').getUTCDay()===5));
+  const live=all.filter(x=>(x.service_date>n.d||(x.service_date===n.d&&toMin(x.service_time)+dur>n.m))&&(mode==='all'||(new Date(x.service_date+'T12:00:00Z').getUTCDay()===5)===(mode==='friday_only')));
   if(!live.length)return[];const f=live[0];
   return live.filter(x=>x.service_date===f.service_date&&(x.service_time||'').slice(0,5)===(f.service_time||'').slice(0,5));
 }

@@ -116,3 +116,14 @@ label.chk{flex-direction:row;align-items:center}
 /* v7: أكتر من خدمة في نفس الوقت جوه مربع الخدمة الجاية */
 .hero-card .xj-svc{padding:10px 0}
 .hero-card .xj-svc+.xj-svc{border-top:1px solid #ffffff44;margin-top:6px;padding-top:14px}
+
+/* v8: ثيمات جديدة */
+[data-theme=ocean]{--bg:#06141c;--bgglow:#0b3a4f;--topbar:#06141cdd;--p1:#0c2230f5;--p2:#091b27f5;--line:#1a3a4b;--line2:#21495d;--h1:#0e3347;--h2:#091b27;--glow:#1f8fb855;--th:#0f2a3a;--inp:#071720;--item:#0a1c28;--chip:#10303f;--tabon:#17617f;--text:#e9f8ff;--text2:#bfdde9;--muted:#85a8b8;--accent:#5fd4f4;--blue:#22b3e0;--blue2:#0e83ad}
+[data-theme=violet]{--bg:#0e0a1c;--bgglow:#2b1a5c;--topbar:#0e0a1cdd;--p1:#181230f5;--p2:#130e27f5;--line:#2f2556;--line2:#3b3068;--h1:#26194f;--h2:#140e29;--glow:#7a52e055;--th:#1d1640;--inp:#0b0817;--item:#110c22;--chip:#241b4a;--tabon:#4a33a0;--text:#f3efff;--text2:#d3c9f0;--muted:#9d93c2;--accent:#b79cff;--blue:#8a63f0;--blue2:#6137d4}
+[data-theme=rose]{--bg:#1a0b13;--bgglow:#521a37;--topbar:#1a0b13dd;--p1:#27121df5;--p2:#1f0e17f5;--line:#4d2a3b;--line2:#5f364a;--h1:#451b30;--h2:#210f19;--glow:#e0508f44;--th:#321726;--inp:#14080e;--item:#1d0d15;--chip:#3b1c2c;--tabon:#8a2d57;--text:#fff1f6;--text2:#f0cfdc;--muted:#bd9aab;--accent:#ff9ec3;--blue:#f0508f;--blue2:#c92a6b}
+[data-theme=graphite]{--bg:#0f1012;--bgglow:#26282c;--topbar:#0f1012dd;--p1:#1a1b1ff5;--p2:#151619f5;--line:#2e3036;--line2:#3a3d44;--h1:#25272c;--h2:#16171a;--glow:#ffffff14;--th:#212226;--inp:#0c0d0f;--item:#121316;--chip:#26282d;--tabon:#454851;--text:#f1f2f4;--text2:#cfd1d6;--muted:#9a9da6;--accent:#e4e6eb;--blue:#8d93a3;--blue2:#5b6070}
+[data-theme=sand]{color-scheme:light;--bg:#f7f1e6;--bgglow:#f0dcb8;--topbar:#fffaf0dd;--p1:#fffdf8;--p2:#fffaf1;--line:#eadfca;--line2:#decfb2;--h1:#fbeed2;--h2:#fff9ec;--glow:#e9b96a55;--th:#f6ecd8;--inp:#ffffff;--item:#fbf5e8;--chip:#f3e8d0;--tabon:#b5701d;--text:#33240f;--text2:#5a4527;--muted:#8a7352;--accent:#a8610f;--blue:#c9801f;--blue2:#9a5a0e;--green:#0f9d73;--red:#c93a4c}
+[data-theme=sand] .status.pending{background:#fff0cf;color:#8a5a00}[data-theme=sand] .status.approved{background:#d9f7ec;color:#0b6b4f}[data-theme=sand] .status.rejected{background:#ffe1e5;color:#a8283b}[data-theme=sand] .brand strong,[data-theme=sand] .welcome-row h1{color:var(--text)}
+
+/* v9: اللوجو قابل للضغط */
+.brand-mark,.welcome-row .wl{cursor:pointer;-webkit-tap-highlight-color:transparent}
