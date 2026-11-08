@@ -24,7 +24,8 @@ async function extras(){
     db.from('contacts').select('*').order('name'),
     db.from('notifications').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(20),
     db.from('availability').select('*').eq('week_date',T)]);
-  A=(a.data||[]).filter(x=>!expired(servicesCache.find(s=>s.id==x.service_id)));V=v.data||[];
+  const pinOk=x=>x.pinned&&(!x.pin_until||x.pin_until>=iso(new Date()));
+  A=(a.data||[]).filter(x=>pinOk(x)||!expired(servicesCache.find(s=>s.id==x.service_id)));V=v.data||[];
   if(admin()){M=(await db.from('profiles').select('id,full_name,email,role').in('role',['server','admin'])).data||[];}
   table();bell(n.data||[]);panels(c.data||[],T);
 }
@@ -40,7 +41,7 @@ function table(){
   $('services-body').innerHTML=servicesCache.slice().sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||''))).map(s=>{
     const names=A.filter(x=>x.service_id==s.id).map(x=>E(x.name)+(x.status=='draft'?' <small>(مسودة)</small>':'')).join('، ')||'—';
     const o=Math.ceil(+s.service_date.slice(8,10)/7);
-    const comm=s.communion_n&&s.communion_n==o?' <span class="status approved">تناول</span>':'';
+    const comm=(s.communion_n&&s.communion_n==o)||s.comm_shift?' <span class="status approved">تناول</span>':'';
     return `<tr><td><strong>${E(s.title)}</strong>${comm}</td><td>${dateText(s.service_date)}</td><td>${E(t12(s.service_time))}</td><td>${E(s.location)}</td><td>${names}</td><td>${E(s.notes||'—')}${admin()?` <button class="btn ghost" data-edit="${s.id}">تعديل</button>`:''}</td><td>${E(communionText(s))}</td></tr>`}).join('');
   document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(b.dataset.edit));
 }
@@ -107,12 +108,13 @@ function edit(id){
   let d=$('x-dlg');if(!d){d=document.createElement('dialog');d.id='x-dlg';document.body.append(d)}
   d.innerHTML=`<div class="stack"><h3>تعديل الخدمة</h3>
   <label>الاسم<input id="e-t" value="${E(s.title)}"></label>
-  <div class="two-col"><label>التاريخ<input id="e-d" type="date" value="${s.service_date}"></label><label>الميعاد<input id="e-h" type="time" value="${(s.service_time||'').slice(0,5)}"></label></div>
-  <label>المكان<input id="e-l" value="${E(s.location)}"></label>
+  <div class="two-col"><label>التاريخ<input id="e-d" type="date" value="${s.service_date}"></label><label>الميعاد<input id="e-h" type="time" value="${((s._ot||s.service_time)||'').slice(0,5)}"></label></div>
+  ${s.comm_shift?'<p class="muted">⚠️ الميعاد والمكان بيتغيروا أوتوماتيك في جمعة التناول دي. اللي تحت هو الأصلي.</p>':''}
+  <label>المكان<input id="e-l" value="${E(s._ol!==undefined?s._ol:s.location)}"></label>
   <div class="two-col"><label>عدد الخدام المطلوب<input id="e-need" type="number" min="1" value="${s.needed||1}"></label><label>تتكرر كل (يوم)<input id="e-rep" type="number" min="0" placeholder="7 = أسبوعي" value="${s.repeat_days||''}"></label></div>
   <label>جمعة التناول (1-4)<input id="e-com" type="number" min="0" max="4" value="${s.communion_n||''}"></label>
   <label>ملاحظات<input id="e-n" value="${E(s.notes||'')}"></label>
-  <b>الخدام</b>${M.map(m=>`<label class="chk"><input type="checkbox" value="${m.id}" ${cur.some(x=>x.user_id==m.id)?'checked':''}> ${E(m.full_name||m.email)}</label>`).join('')}
+  <b>الخدام</b><small class="muted">📌 التثبيت: الخادم المثبّت بيفضل في الخدمة حتى بعد ما تخلص، للمدة اللي تختارها.</small>${M.map(m=>{const c0=cur.find(x=>x.user_id==m.id),pc=c0&&c0.pinned;return `<div class="pin-row"><label class="chk"><input type="checkbox" value="${m.id}" ${c0?'checked':''}> ${E(m.full_name||m.email)}</label><select data-pin="${m.id}"><option value="none">غير مثبّت</option>${pc?`<option value="cur" selected>${c0.pin_until?'مثبّت لحد '+c0.pin_until:'مثبّت للأبد'} (زي ما هو)</option>`:''}<option value="7">📌 أسبوع</option><option value="14">📌 أسبوعين</option><option value="30">📌 شهر</option><option value="90">📌 ٣ شهور</option><option value="180">📌 ٦ شهور</option><option value="forever">📌 للأبد</option></select></div>`}).join('')}
   <label>أسماء من غير حساب (اسم في كل سطر)<textarea id="e-x" rows="2">${E(cur.filter(x=>!x.user_id).map(x=>x.name).join('\n'))}</textarea></label>
   <div class="row-btns"><button class="btn primary" id="e-save">حفظ</button><button class="btn ghost" id="e-close">إلغاء</button><button class="btn" id="e-del">حذف الخدمة</button></div></div>`;
   d.showModal();$('e-close').onclick=()=>d.close();
@@ -122,7 +124,12 @@ function edit(id){
     const r=await db.from('services').update(p).eq('id',id);if(r.error)return alert(r.error.message);
     const st=cur.length&&cur.every(x=>x.status=='draft')?'draft':'approved';
     const ids=[...d.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value), nm=u=>{const m=M.find(m=>m.id==u);return m.full_name||m.email};
-    const rows=ids.map(u=>({service_id:id,user_id:u,name:nm(u),status:st})).concat($('e-x').value.split('\n').map(x=>x.trim()).filter(Boolean).map(name=>({service_id:id,name,status:st})));
+    const pinOf=u=>{const v=(d.querySelector(`[data-pin="${u}"]`)||{}).value,c0=cur.find(x=>x.user_id==u);
+      if(v==='cur'&&c0)return{pinned:true,pin_until:c0.pin_until||null};
+      if(v==='forever')return{pinned:true,pin_until:null};
+      if(v&&!isNaN(+v)){const t=new Date();t.setDate(t.getDate()+(+v));return{pinned:true,pin_until:iso(t)}}
+      return{pinned:false,pin_until:null}};
+    const rows=ids.map(u=>Object.assign({service_id:id,user_id:u,name:nm(u),status:st},pinOf(u))).concat($('e-x').value.split('\n').map(x=>x.trim()).filter(Boolean).map(name=>({service_id:id,name,status:st})));
     await db.from('service_assignees').delete().eq('service_id',id);
     if(rows.length)await db.from('service_assignees').insert(rows);
     if(st=='approved')await notify(ids.filter(u=>!cur.some(x=>x.user_id==u)),`تم تكليفك بخدمة ${p.title} يوم ${dateText(p.service_date)}`);

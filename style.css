@@ -127,3 +127,19 @@ label.chk{flex-direction:row;align-items:center}
 
 /* v9: اللوجو قابل للضغط */
 .brand-mark,.welcome-row .wl{cursor:pointer;-webkit-tap-highlight-color:transparent}
+
+/* v10: صف التثبيت */
+.pin-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.pin-row select{width:auto;max-width:48%;padding:6px 8px;font-size:12px}
+/* خلفية متحركة: أورورا ناعمة بألوان الثيم + شبكة خفيفة. بتقف لو "تقليل الحركة" مفعّل */
+.x-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.x-bg i{position:absolute;border-radius:50%;filter:blur(80px);opacity:.38;will-change:transform}
+.x-bg i:nth-child(1){width:46vmax;height:46vmax;left:-12vmax;top:-14vmax;background:var(--blue);animation:xb1 26s ease-in-out infinite alternate}
+.x-bg i:nth-child(2){width:40vmax;height:40vmax;right:-14vmax;top:12vh;background:var(--accent);opacity:.26;animation:xb2 32s ease-in-out infinite alternate}
+.x-bg i:nth-child(3){width:36vmax;height:36vmax;left:22vw;bottom:-18vmax;background:var(--blue2);opacity:.34;animation:xb3 29s ease-in-out infinite alternate}
+.x-bg::after{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:56px 56px;opacity:.22;-webkit-mask-image:radial-gradient(ellipse at 50% 30%,#000 0,transparent 70%);mask-image:radial-gradient(ellipse at 50% 30%,#000 0,transparent 70%);animation:xbg 40s linear infinite}
+@keyframes xb1{to{transform:translate(18vw,22vh) scale(1.25) rotate(40deg)}}
+@keyframes xb2{to{transform:translate(-22vw,18vh) scale(.85) rotate(-35deg)}}
+@keyframes xb3{to{transform:translate(20vw,-20vh) scale(1.2) rotate(30deg)}}
+@keyframes xbg{to{background-position:56px 56px}}
+[data-theme=light] .x-bg i,[data-theme=sand] .x-bg i{opacity:.28}
+@media (prefers-reduced-motion:reduce){.x-bg i,.x-bg::after{animation:none}}
