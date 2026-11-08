@@ -116,22 +116,21 @@ function askPhone(){
   };
   d.showModal();
 }
-/* جمعة التناول: لو الميزة مفعّلة، خدمات الجمعة (الأولى/التانية/... حسب اللي المسؤول يحدده) ميعادها ومكانها بيتبدلوا لوحدهم.
+/* جمعة التناول لكل خدمة لوحدها: لو الخدمة مفعّل عليها comm_on وتاريخها جمعة من الجمع المختارة، ميعادها ومكانها بيتبدلوا.
    الأصل بيتخزّن في _ot/_ol عشان شاشة التعديل ما تحفظش القيمة المتبدّلة بالغلط. */
 function applyCommShift(list){
-  const c=window.xCommCfg||{},ords=c.ordinals||[];
-  if(!c.on||!ords.length||(!c.time&&!c.location))return list.map(s=>Object.assign({_ot:s.service_time,_ol:s.location},s));
   return list.map(s=>{
-    const o={_ot:s.service_time,_ol:s.location},dt=new Date(s.service_date+"T12:00:00Z");
+    const o={_ot:s.service_time,_ol:s.location},ords=s.comm_ordinals||[];
+    if(!s.comm_on||!ords.length||(!s.comm_time&&!s.comm_location))return Object.assign(o,s);
+    const dt=new Date(s.service_date+"T12:00:00Z");
     if(dt.getUTCDay()!==5||!ords.includes(Math.ceil(dt.getUTCDate()/7)))return Object.assign(o,s);
-    return Object.assign(o,s,{service_time:c.time?(c.time.length===5?c.time+":00":c.time):s.service_time,location:c.location||s.location,comm_shift:true});
+    return Object.assign(o,s,{service_time:s.comm_time||s.service_time,location:s.comm_location||s.location,comm_shift:true});
   });
 }
 async function refreshData(){
   if(!db||!currentUser)return;
   const {data:services,error}=await db.from("services").select("*").order("service_date",{ascending:true}).order("service_time",{ascending:true});
   if(error){$("services-body").innerHTML=`<tr><td colspan="7" class="empty">تعذر تحميل الجدول: ${escapeHtml(error.message)}</td></tr>`;return;}
-  try{const q=await db.from("app_settings").select("value").eq("key","communion_shift").maybeSingle();window.xCommCfg=(q.data&&q.data.value)||{}}catch{window.xCommCfg={}}
   servicesCache=applyCommShift((services||[]).slice().sort((a,b)=>(a.service_date+(a.service_time||"")).localeCompare(b.service_date+(b.service_time||""))));
   const upcoming=servicesCache.filter(s=>s.service_date>=new Date().toISOString().slice(0,10));
   $("stat-upcoming").textContent=upcoming.length;

@@ -143,3 +143,8 @@ label.chk{flex-direction:row;align-items:center}
 @keyframes xbg{to{background-position:56px 56px}}
 [data-theme=light] .x-bg i,[data-theme=sand] .x-bg i{opacity:.28}
 @media (prefers-reduced-motion:reduce){.x-bg i,.x-bg::after{animation:none}}
+
+/* v12: مربع جمعة التناول لكل خدمة */
+.comm-box{border:1px solid var(--line2);border-radius:14px;padding:14px;background:var(--item);display:grid;gap:10px}
+.comm-ex{display:grid;gap:6px;font-size:14px}.comm-ex p{margin:0;display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:var(--p2)}
+.comm-ex p.on{border:1px solid var(--accent)}.comm-ex .tag{font-size:12px;color:var(--accent)}

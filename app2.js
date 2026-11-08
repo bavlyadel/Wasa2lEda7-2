@@ -112,15 +112,28 @@ function edit(id){
   ${s.comm_shift?'<p class="muted">⚠️ الميعاد والمكان بيتغيروا أوتوماتيك في جمعة التناول دي. اللي تحت هو الأصلي.</p>':''}
   <label>المكان<input id="e-l" value="${E(s._ol!==undefined?s._ol:s.location)}"></label>
   <div class="two-col"><label>عدد الخدام المطلوب<input id="e-need" type="number" min="1" value="${s.needed||1}"></label><label>تتكرر كل (يوم)<input id="e-rep" type="number" min="0" placeholder="7 = أسبوعي" value="${s.repeat_days||''}"></label></div>
+  <div class="comm-box"><b>🕊 جمعة التناول — للخدمة دي بس</b>
+  <label class="chk"><input type="checkbox" id="e-con" ${s.comm_on?'checked':''}> تغيير ميعاد/مكان الخدمة دي في جمعة التناول</label>
+  <div class="row-btns">${[1,2,3,4,5].map(n=>`<label class="chk"><input type="checkbox" class="e-co" value="${n}" ${(s.comm_ordinals||[]).includes(n)?'checked':''}> الجمعة ${n}</label>`).join('')}</div>
+  <div class="two-col"><label>الميعاد في التناول<input id="e-ct" type="time" value="${(s.comm_time||'').slice(0,5)}"></label><label>المكان في التناول<input id="e-cl" value="${E(s.comm_location||'')}" placeholder="سيب فاضي لو المكان مش هيتغير"></label></div>
+  <small class="muted">هيتطبق على الخدمة دي بس، وباقي الخدمات ما بتتأثرش.</small>
+  <div class="comm-ex" id="e-cex"></div></div>
   <label>جمعة التناول (1-4)<input id="e-com" type="number" min="0" max="4" value="${s.communion_n||''}"></label>
   <label>ملاحظات<input id="e-n" value="${E(s.notes||'')}"></label>
   <b>الخدام</b><small class="muted">📌 التثبيت: الخادم المثبّت بيفضل في الخدمة حتى بعد ما تخلص، للمدة اللي تختارها.</small>${M.map(m=>{const c0=cur.find(x=>x.user_id==m.id),pc=c0&&c0.pinned;return `<div class="pin-row"><label class="chk"><input type="checkbox" value="${m.id}" ${c0?'checked':''}> ${E(m.full_name||m.email)}</label><select data-pin="${m.id}"><option value="none">غير مثبّت</option>${pc?`<option value="cur" selected>${c0.pin_until?'مثبّت لحد '+c0.pin_until:'مثبّت للأبد'} (زي ما هو)</option>`:''}<option value="7">📌 أسبوع</option><option value="14">📌 أسبوعين</option><option value="30">📌 شهر</option><option value="90">📌 ٣ شهور</option><option value="180">📌 ٦ شهور</option><option value="forever">📌 للأبد</option></select></div>`}).join('')}
   <label>أسماء من غير حساب (اسم في كل سطر)<textarea id="e-x" rows="2">${E(cur.filter(x=>!x.user_id).map(x=>x.name).join('\n'))}</textarea></label>
   <div class="row-btns"><button class="btn primary" id="e-save">حفظ</button><button class="btn ghost" id="e-close">إلغاء</button><button class="btn" id="e-del">حذف الخدمة</button></div></div>`;
   d.showModal();$('e-close').onclick=()=>d.close();
+  const cexRender=()=>{
+    const on=$('e-con').checked,ords=[...d.querySelectorAll('.e-co:checked')].map(x=>+x.value),ct=$('e-ct').value,cl=$('e-cl').value.trim(),nt=$('e-h').value,nl=$('e-l').value.trim(),c=cairo(),k=(5-c.dow+7)%7;
+    let h='<span class="muted">الشكل في أقرب ٣ جمع:</span>';
+    for(let i=0;i<3;i++){const dt=new Date(Date.UTC(c.y,c.m-1,c.d+k+i*7)),o=Math.ceil(dt.getUTCDate()/7),hit=on&&ords.includes(o)&&(ct||cl),tm=hit&&ct?ct:nt,lc=hit&&cl?cl:nl;
+      h+=`<p class="${hit?'on':''}"><span>${dateText(dt.toISOString().slice(0,10))} (الجمعة ${o}) ${hit?'<span class="tag">🕊 تناول</span>':''}</span><b>${E(t12(tm||''))} · ${E(lc)}</b></p>`}
+    $('e-cex').innerHTML=h};
+  d.querySelectorAll('.comm-box input,#e-h,#e-l').forEach(i=>{i.oninput=cexRender;i.onchange=cexRender});cexRender();
   $('e-del').onclick=async()=>{if(confirm('حذف الخدمة نهائيًا؟')){await db.from('services').delete().eq('id',id);d.close();refreshData()}};
   $('e-save').onclick=async()=>{
-    const p={title:$('e-t').value.trim(),service_date:$('e-d').value,service_time:$('e-h').value,location:$('e-l').value.trim(),notes:$('e-n').value.trim()||null,needed:+$('e-need').value||1,repeat_days:+$('e-rep').value||null,communion_n:+$('e-com').value||null};
+    const p={title:$('e-t').value.trim(),service_date:$('e-d').value,service_time:$('e-h').value,location:$('e-l').value.trim(),notes:$('e-n').value.trim()||null,needed:+$('e-need').value||1,repeat_days:+$('e-rep').value||null,communion_n:+$('e-com').value||null,comm_on:$('e-con').checked,comm_ordinals:[...d.querySelectorAll('.e-co:checked')].map(x=>+x.value),comm_time:$('e-ct').value||null,comm_location:$('e-cl').value.trim()||null};
     const r=await db.from('services').update(p).eq('id',id);if(r.error)return alert(r.error.message);
     const st=cur.length&&cur.every(x=>x.status=='draft')?'draft':'approved';
     const ids=[...d.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value), nm=u=>{const m=M.find(m=>m.id==u);return m.full_name||m.email};

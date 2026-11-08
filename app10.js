@@ -4,7 +4,7 @@ const E10=escapeHtml,isAdm=()=>currentProfile&&currentProfile.role==='admin';
 const DUR=[[60,'ساعة'],[90,'ساعة ونص'],[120,'ساعتين'],[150,'ساعتين ونص'],[180,'٣ ساعات'],[240,'٤ ساعات']];
 async function inject(el){
   if(!isAdm()||el.querySelector('#x-nc'))return;
-  const r=await db.from('app_settings').select('value').eq('key','next_card').maybeSingle(),cr=await db.from('app_settings').select('value').eq('key','communion_shift').maybeSingle(),cs=(cr.data&&cr.data.value)||{},co=cs.ordinals||[1,2];
+  const r=await db.from('app_settings').select('value').eq('key','next_card').maybeSingle();
   if(el.querySelector('#x-nc'))return;
   const v=(r.data&&r.data.value)||{},dur=+v.duration||120,mode=v.mode||(v.friday_only?'friday_only':'all');
   const box=document.createElement('div');box.id='x-nc';box.className='stack';
@@ -13,12 +13,6 @@ async function inject(el){
   <label>الخدمات اللي تظهر في المربع<select id="nc-mode"><option value="all" ${mode==='all'?'selected':''}>كل الخدمات (كل الأيام)</option><option value="no_friday" ${mode==='no_friday'?'selected':''}>من غير خدمات الجمعة</option><option value="friday_only" ${mode==='friday_only'?'selected':''}>خدمات الجمعة بس</option></select></label>
   <label>الخدمة بتعتبر خلصت بعد ميعادها بـ<select id="nc-dur">${DUR.map(([k,t])=>`<option value="${k}" ${k===dur?'selected':''}>${t}</option>`).join('')}</select></label>
   <div class="row-btns"><button class="btn primary" id="nc-save" type="button">حفظ</button></div><p class="message" id="nc-msg"></p>`;
-  box.insertAdjacentHTML('beforeend',`<hr style="border:0;border-top:1px solid var(--line);width:100%"><h2>🕊 جمعة التناول: تغيير الميعاد والمكان أوتوماتيك</h2>
-  <p class="muted">لما تفعّلها، خدمات أيام الجمعة اللي تختارها (مثلًا الأولى والتانية في الشهر) ميعادها ومكانها بيتبدلوا لوحدهم في الجدول والمربع والتقويم. الأصل بيفضل محفوظ، ولما تقفلها كل حاجة ترجع زي ما كانت.</p>
-  <label class="chk"><input type="checkbox" id="cm-on" ${cs.on?'checked':''}> تفعيل الميزة</label>
-  <div class="row-btns">${[1,2,3,4,5].map(n=>`<label class="chk"><input type="checkbox" class="cm-o" value="${n}" ${co.includes(n)?'checked':''}> الجمعة ${n}</label>`).join('')}</div>
-  <div class="two-col"><label>الميعاد في جمعة التناول<input id="cm-t" type="time" value="${E10(cs.time||'')}"></label><label>المكان في جمعة التناول<input id="cm-l" value="${E10(cs.location||'')}" placeholder="سيب فاضي لو المكان مش هيتغير"></label></div>
-  <div class="row-btns"><button class="btn primary" id="cm-save" type="button">حفظ</button></div><p class="message" id="cm-msg"></p>`);
   const bgr=await db.from('app_settings').select('value').eq('key','background').maybeSingle(),bgm=(bgr.data&&bgr.data.value&&bgr.data.value.mode)||'aurora';
   if(window.xBg)box.insertAdjacentHTML('beforeend',`<hr style="border:0;border-top:1px solid var(--line);width:100%"><h2>🎨 الخلفية المتحركة</h2>
   <p class="muted">اختار الخلفية اللي تشتغل عند كل الأعضاء (بتتجرّب قدامك على طول، وبعدين اضغط حفظ). «بدون خلفية» بيقفلها خالص.</p>
@@ -27,12 +21,6 @@ async function inject(el){
   el.appendChild(box);
   if($('bg-sel')){$('bg-sel').onchange=()=>window.xBg.apply($('bg-sel').value);
    $('bg-save').onclick=async()=>{const x=await db.rpc('set_setting',{p_key:'background',p_value:{mode:$('bg-sel').value}}),m=$('bg-msg');m.textContent=x.error?x.error.message:'تم الحفظ.';m.classList.toggle('error',!!x.error);if(!x.error){try{localStorage.setItem('x-bg',$('bg-sel').value)}catch{}}}}
-  $('cm-save').onclick=async()=>{
-    const ords=[...box.querySelectorAll('.cm-o:checked')].map(x=>+x.value),t=$('cm-t').value,l=$('cm-l').value.trim();
-    if($('cm-on').checked&&(!ords.length||(!t&&!l))){const m=$('cm-msg');m.textContent='اختار جمعة واحدة على الأقل واكتب ميعاد أو مكان.';m.classList.add('error');return}
-    const x=await db.rpc('set_setting',{p_key:'communion_shift',p_value:{on:$('cm-on').checked,ordinals:ords,time:t,location:l}});
-    const m=$('cm-msg');m.textContent=x.error?x.error.message:'تم الحفظ.';m.classList.toggle('error',!!x.error);if(!x.error)refreshData();
-  };
   $('nc-save').onclick=async()=>{
     const x=await db.rpc('set_setting',{p_key:'next_card',p_value:{mode:$('nc-mode').value,duration:+$('nc-dur').value}});
     const m=$('nc-msg');m.textContent=x.error?x.error.message:'تم الحفظ.';m.classList.toggle('error',!!x.error);
