@@ -1,1 +1,1 @@
-try{var t=localStorage.getItem("theme")||"dark";document.documentElement.dataset.theme=t==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):t}catch(e){}
+try{var t=localStorage.getItem("theme")||"dark",st=localStorage.getItem("x-season-theme");if(st&&localStorage.getItem("x-season-off")!=="1")t=st;document.documentElement.dataset.theme=t==="auto"?(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):t}catch(e){}

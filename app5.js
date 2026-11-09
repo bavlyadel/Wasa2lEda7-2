@@ -1,6 +1,7 @@
 /* ثيمات + مشاركة الجدول كصورة */
 (function(){
-const TH=[['dark','🌙 داكن'],['light','☀️ فاتح'],['emerald','🌿 زمردي'],['royal','👑 ملكي'],['sunset','🌇 غروب'],['ocean','🌊 محيط'],['violet','🔮 بنفسجي'],['rose','🌸 وردي'],['graphite','🖤 جرافيت'],['sand','🏜 رملي'],['auto','🖥 تلقائي']];
+const TH=[['dark','🌙 داكن'],['light','☀️ فاتح'],['emerald','🌿 زمردي'],['royal','👑 ملكي'],['sunset','🌇 غروب'],['ocean','🌊 محيط'],['violet','🔮 بنفسجي'],['rose','🌸 وردي'],['graphite','🖤 جرافيت'],['sand','🏜 رملي'],['coptic','🕯 ذهبي قبطي'],['martyr','🩸 عنابي'],['olive','🌿 زيتوني'],['sky','☁️ سماوي'],['ivory','🤍 عاجي'],['coptic','🕯 ذهبي قبطي'],['martyr','🩸 عنابي'],['olive','🌿 زيتوني'],['sky','☁️ سماوي (فاتح)'],['ivory','🤍 عاجي (فاتح)'],['auto','🖥 تلقائي']];
+window.xThemes=TH;
 const get=()=>{try{return localStorage.getItem('theme')||'dark'}catch{return'dark'}};
 function apply(t){const r=t==='auto'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):t;document.documentElement.dataset.theme=r;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||'#111827'}
 const ta=document.querySelector('.top-actions');

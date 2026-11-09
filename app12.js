@@ -36,9 +36,10 @@ const FX={
    ctx.fillStyle=g;ctx.beginPath();ctx.arc(f.x,f.y,f.r*7,0,7);ctx.fill();ctx.fillStyle=rgba('#ffffff',.9*al);ctx.beginPath();ctx.arc(f.x,f.y,f.r*.45,0,7);ctx.fill()}}}}
 };
 
-let cur=null,curMode=null;
+let cur=null,curMode=null,want=null,suspended=false;
 function stop(){if(cur){cur();cur=null}}
 function apply(mode){
+  want=mode;if(suspended)return;
   if(mode===curMode)return;curMode=mode;stop();
   if(mode==='aurora'){const d=document.createElement('div');d.className='x-bg';d.innerHTML='<i></i><i></i><i></i>';document.body.prepend(d);cur=()=>d.remove();return}
   if(!FX[mode])return;
@@ -54,7 +55,7 @@ function apply(mode){
   th();size();loop();
   cur=()=>{alive=false;cancelAnimationFrame(raf);removeEventListener('resize',size);removeEventListener('pointermove',pm);removeEventListener('pointerleave',pl);document.removeEventListener('visibilitychange',vis);mo.disconnect();cv.remove()};
 }
-window.xBg={list:LIST,apply};
+window.xBg={list:LIST,apply,suspend(){suspended=true;curMode=null;stop()},restore(){if(!suspended)return;suspended=false;curMode=null;apply(want||lsGet()||'aurora')}};
 const lsGet=()=>{try{return localStorage.getItem('x-bg')}catch{return null}},lsSet=m=>{try{localStorage.setItem('x-bg',m)}catch{}};
 apply(lsGet()||'aurora');          // أول ما الصفحة تفتح (آخر اختيار متخزّن في المتصفح)
 let synced=false;
