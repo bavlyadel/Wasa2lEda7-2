@@ -170,3 +170,9 @@ body.seasonal .panel,body.seasonal .stat{background:color-mix(in srgb,var(--p1) 
 #x-season-ban .ic{font-size:36px}#x-season-ban h2{margin:0;font-size:22px}#x-season-ban p{margin:4px 0 0;color:var(--text2)}#x-season-ban .btn{margin-inline-start:auto;font-size:12px;padding:6px 12px}
 .season-card{border:1px solid var(--line2);border-radius:14px;padding:12px;background:var(--item);display:grid;gap:10px}
 .season-card summary{cursor:pointer;font-weight:800}
+
+/* v14: كارت التاريخ القبطي */
+#x-cdate{display:flex;align-items:center;gap:16px;padding:14px 20px;border-radius:18px;border:1px solid var(--line2);background:var(--p1);margin-bottom:14px}
+body.seasonal #x-cdate{background:color-mix(in srgb,var(--p1) 60%,transparent);backdrop-filter:blur(2px)}
+#x-cdate .cr{width:50px;height:50px;flex:none;color:var(--accent)}#x-cdate .big{font-size:25px;font-weight:900;line-height:1.2}#x-cdate .gr{color:var(--muted);font-size:13px;margin-top:2px}
+#x-cdate .oc{margin-top:8px;padding:6px 12px;border-radius:99px;background:var(--chip);color:var(--accent);font-weight:800;font-size:13px;display:inline-block}#x-cdate .nx{margin-top:8px;font-size:13px;color:var(--text2)}
