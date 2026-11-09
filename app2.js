@@ -136,7 +136,7 @@ function edit(id){
     const p={title:$('e-t').value.trim(),service_date:$('e-d').value,service_time:$('e-h').value,location:$('e-l').value.trim(),notes:$('e-n').value.trim()||null,needed:+$('e-need').value||1,repeat_days:+$('e-rep').value||null,communion_n:+$('e-com').value||null,comm_on:$('e-con').checked,comm_ordinals:[...d.querySelectorAll('.e-co:checked')].map(x=>+x.value),comm_time:$('e-ct').value||null,comm_location:$('e-cl').value.trim()||null};
     const r=await db.from('services').update(p).eq('id',id);if(r.error)return alert(r.error.message);
     const st=cur.length&&cur.every(x=>x.status=='draft')?'draft':'approved';
-    const ids=[...d.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value), nm=u=>{const m=M.find(m=>m.id==u);return m.full_name||m.email};
+    const ids=[...d.querySelectorAll('.pin-row input[type=checkbox]:checked')].map(c=>c.value), nm=u=>{const m=M.find(m=>m.id==u);return m.full_name||m.email};
     const pinOf=u=>{const v=(d.querySelector(`[data-pin="${u}"]`)||{}).value,c0=cur.find(x=>x.user_id==u);
       if(v==='cur'&&c0)return{pinned:true,pin_until:c0.pin_until||null};
       if(v==='forever')return{pinned:true,pin_until:null};
