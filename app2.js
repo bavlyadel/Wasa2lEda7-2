@@ -142,9 +142,13 @@ function edit(id){
       if(v==='forever')return{pinned:true,pin_until:null};
       if(v&&!isNaN(+v)){const t=new Date();t.setDate(t.getDate()+(+v));return{pinned:true,pin_until:iso(t)}}
       return{pinned:false,pin_until:null}};
-    const rows=ids.map(u=>Object.assign({service_id:id,user_id:u,name:nm(u),status:st},pinOf(u))).concat($('e-x').value.split('\n').map(x=>x.trim()).filter(Boolean).map(name=>({service_id:id,name,status:st})));
-    await db.from('service_assignees').delete().eq('service_id',id);
-    if(rows.length)await db.from('service_assignees').insert(rows);
+    const rows=ids.map(u=>Object.assign({service_id:id,user_id:u,name:nm(u),status:st},pinOf(u))).concat($('e-x').value.split('\n').map(x=>x.trim()).filter(Boolean).map(name=>({service_id:id,user_id:null,name,status:st,pinned:false,pin_until:null})));
+    const bk=cur.map(x=>Object.assign({},x));
+    const dl=await db.from('service_assignees').delete().eq('service_id',id);if(dl.error)return alert('تعذر الحفظ: '+dl.error.message);
+    if(rows.length){let ins=await db.from('service_assignees').insert(rows);
+      if(ins.error){/* لو أعمدة التثبيت مش موجودة (migration15) نحفظ من غيرها */
+        const plain=rows.map(({pinned,pin_until,...o})=>o);ins=await db.from('service_assignees').insert(plain);
+        if(ins.error){const bb=bk.map(({id:_i,created_at:_c,...o})=>o);if(bb.length)await db.from('service_assignees').insert(bb);alert('تعذر حفظ الخدام: '+ins.error.message);refreshData();return}}}
     if(st=='approved')await notify(ids.filter(u=>!cur.some(x=>x.user_id==u)),`تم تكليفك بخدمة ${p.title} يوم ${dateText(p.service_date)}`);
     d.close();refreshData();
   };
