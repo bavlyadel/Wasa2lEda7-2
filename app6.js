@@ -71,6 +71,7 @@ bg.onclick=closeNav;
 const ALL=['member','server','admin'],STAFF=['server','admin'],ADM=['admin'];
 const ITEMS=[
 ['home','📅','الرئيسية والجدول',ALL],
+['calendar','📆','التقويم الشهري',ALL],
 ['reg','✅','تسجيلي لخدمة الجمعة',STAFF],
 ['requests','📨','طلباتي وطلب جديد',ALL],
 ['youth','🧑‍🤝‍🧑','التقديم للخدمة',ALL],
@@ -94,7 +95,7 @@ function buildNav(){
   $$('.x-item',nav).forEach(b=>b.onclick=()=>go(b.dataset.v));buildBnav();
 }
 window.xGo=go;window.xEnsure=function(id){return ensure(id)};
-function go(v){view=v;try{sessionStorage.setItem('xview',v)}catch{}closeNav();buildNav();apply();if(v==='directory')loadDir();if(v==='secretariat')loadSec();if(v==='approvals')loadAppr();if(v==='settings')loadSet();if(v==='attendance'&&window.xLoadAtt)window.xLoadAtt();scrollTo({top:0})}
+function go(v){view=v;try{sessionStorage.setItem('xview',v)}catch{}closeNav();buildNav();apply();if(v==='directory')loadDir();if(v==='secretariat')loadSec();if(v==='approvals')loadAppr();if(v==='settings')loadSet();if(v==='attendance'&&window.xLoadAtt)window.xLoadAtt();if(v==='calendar'&&window.xLoadCal)window.xLoadCal();scrollTo({top:0})}
 
 /* ---------- تقسيم الصفحة لأقسام ---------- */
 const BY_ID={'x-guides':'video','stats':'home','services-heading':'home','services-panel':'home','admin-panel':'admin'};
@@ -117,7 +118,7 @@ new MutationObserver(sched).observe($('app-view'),{childList:true,subtree:true})
 const syncNav=()=>{const on=!$('app-view').classList.contains('hidden');nav.classList.toggle('hidden',!on);bn.classList.toggle('hidden',!on);document.body.classList.toggle('x-has-nav',on);if(!on)closeNav();if(on&&currentProfile){buildNav();sched()}};
 new MutationObserver(syncNav).observe($('app-view'),{attributes:true,attributeFilter:['class']});
 
-function ensure(id){let e=$(id);if(!e){e=document.createElement('section');e.id=id;e.className='panel pad stack';e.dataset.v={'x-dir':'directory','x-appr':'approvals','x-set':'settings','x-sec':'secretariat','x-att':'attendance'}[id];$('app-view').insertBefore(e,document.querySelector('#app-view footer')||null)}return e}
+function ensure(id){let e=$(id);if(!e){e=document.createElement('section');e.id=id;e.className='panel pad stack';e.dataset.v={'x-dir':'directory','x-appr':'approvals','x-set':'settings','x-sec':'secretariat','x-att':'attendance','x-cal':'calendar'}[id];$('app-view').insertBefore(e,document.querySelector('#app-view footer')||null)}return e}
 const wa=p=>{let d=(p||'').replace(/\D/g,'');if(d.startsWith('0'))d='20'+d.slice(1);return 'https://wa.me/'+d};
 const ct=p=>p.phone?`<div class="row-btns"><a class="btn" href="tel:${E(p.phone)}">اتصال</a><a class="btn ghost" href="${wa(p.phone)}" target="_blank" rel="noopener">واتساب</a></div>`:'';
 

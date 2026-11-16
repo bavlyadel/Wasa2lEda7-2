@@ -176,3 +176,30 @@ body.seasonal .panel,body.seasonal .stat{background:color-mix(in srgb,var(--p1) 
 body.seasonal #x-cdate{background:color-mix(in srgb,var(--p1) 60%,transparent);backdrop-filter:blur(2px)}
 #x-cdate .cr{width:50px;height:50px;flex:none;color:var(--accent)}#x-cdate .big{font-size:25px;font-weight:900;line-height:1.2}#x-cdate .gr{color:var(--muted);font-size:13px;margin-top:2px}
 #x-cdate .oc{margin-top:8px;padding:6px 12px;border-radius:99px;background:var(--chip);color:var(--accent);font-weight:800;font-size:13px;display:inline-block}#x-cdate .nx{margin-top:8px;font-size:13px;color:var(--text2)}
+
+/* v16: دورك الجاي + آية اليوم */
+#x-next{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:18px;border:1px solid var(--line2);background:linear-gradient(135deg,var(--h1),var(--h2));margin-bottom:14px}
+body.seasonal #x-next{background:color-mix(in srgb,var(--p1) 60%,transparent)}
+#x-next .cnt{flex:none;min-width:92px;height:92px;padding:0 8px;border-radius:22px;background:var(--chip);border:1px solid var(--line2);display:flex;flex-direction:column;align-items:center;justify-content:center}
+#x-next .cnt b{font-size:38px;line-height:1;color:var(--accent);font-weight:900}#x-next .cnt b.w{font-size:24px}#x-next .cnt small{font-size:12px;color:var(--muted);margin-top:4px}
+#x-next h3{margin:0;font-size:21px}#x-next .m{color:var(--muted);font-size:13px;margin-top:4px}
+#x-next .tags{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}#x-next .tg{padding:5px 12px;border-radius:99px;background:var(--chip);font-size:12px;font-weight:700}#x-next .tg.ok{color:var(--green)}
+#x-verse{margin:0 0 14px;padding:12px 18px;border-radius:14px;border:1px dashed var(--line2);text-align:center;font-size:17px;line-height:1.9;color:var(--text2)}
+body.seasonal #x-verse{background:color-mix(in srgb,var(--p1) 55%,transparent)}#x-verse small{display:block;color:var(--muted);font-size:12px}
+.vrow{display:flex;gap:8px;margin:6px 0;align-items:center}.vrow input{flex:1;min-width:0}.vrow input.r{flex:none;width:34%}
+@media(max-width:600px){#x-next{padding:14px;gap:12px}#x-next .cnt{min-width:76px;height:76px}#x-next .cnt b{font-size:30px}#x-next h3{font-size:18px}}
+
+/* v17: تأكيد/طلبات/نقص/تقويم/بحث */
+.x-box{padding:14px 18px;border-radius:16px;border:1px solid var(--line2);background:var(--p1);margin-bottom:14px}
+body.seasonal .x-box{background:color-mix(in srgb,var(--p1) 60%,transparent)}
+.x-box.warn{border-color:var(--gold,#f2c14e);background:#f2c14e12}
+.x-it{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}.x-box>b+.x-it{border-top:0}
+#x-next .x-acts{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+dialog.x-dlg{background:var(--p1);color:var(--text);border:1px solid var(--line2);border-radius:18px;padding:18px;width:min(520px,94vw);max-height:88vh;overflow:auto}
+dialog.x-dlg::backdrop{background:#000a}dialog.x-dlg label{display:block;margin:10px 0 4px}dialog.x-dlg input,dialog.x-dlg select{width:100%}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:12px 0}.cal-h{text-align:center;font-size:12px}
+.cal-c{min-height:70px;border:1px solid var(--line);border-radius:10px;background:var(--item,var(--p1));color:var(--text);padding:4px;text-align:right;display:flex;flex-direction:column;gap:2px;overflow:hidden;font:inherit}
+.cal-c span{font-size:12px;color:var(--muted)}.cal-c i{font-style:normal;font-size:10px;color:#fff;border-radius:5px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cal-c i.prj{opacity:.45}.cal-c small{font-size:10px;color:var(--muted)}
+.cal-c.now{border-color:var(--accent)}.cal-c.sel{outline:2px solid var(--gold,#f2c14e)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:6px}
+@media(max-width:600px){.cal-c{min-height:54px}.cal-c i{font-size:9px}}
