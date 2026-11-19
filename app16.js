@@ -30,7 +30,7 @@ async function loadMine(){
 }
 function pick(){
   if(!mine||typeof servicesCache==='undefined'||!servicesCache)return null;const c=cairo();
-  const L=servicesCache.filter(s=>mine.has(String(s.id))&&s.service_date&&(s.service_date>c.d||(s.service_date===c.d&&(()=>{const t=(s.service_time||'00:00').split(':');return +t[0]*60+ +t[1]+120>c.m})())));
+  const L=(window.xAllSvc||servicesCache).filter(s=>mine.has(String(s.id))&&s.service_date&&(s.service_date>c.d||(s.service_date===c.d&&(()=>{const t=(s.service_time||'00:00').split(':');return +t[0]*60+ +t[1]+120>c.m})())));
   return L.length?L[0]:null; /* servicesCache مترتب بالتاريخ والوقت */
 }
 function nextTick(){
@@ -43,10 +43,11 @@ function nextTick(){
   const big=days===0?['النهارده','w','']:days===1?['بكرة','w','']:days===2?['يومين','w','']:[ar(days),'','أيام'];
   const tm=typeof t12==='function'?t12((s.service_time||'').slice(0,5)):(s.service_time||'').slice(0,5);
   const dt=typeof dateText==='function'?dateText(s.service_date):s.service_date;
-  const st=att[String(s.id)],tags=[];
+  const st=att[String(s.id)],tags=[],cxd=window.xCx&&xCx(s);e.classList.toggle('cx',!!cxd);
+  if(cxd)tags.push('<span class="tg" style="color:var(--red)">🚫 ملغاة '+E(window.xCxText?xCxText(s):'')+'</span>'+(s.cancel_reason?'<span class="tg">السبب: '+E(s.cancel_reason)+'</span>':''));
   if(s.comm_shift||(s.comm_on&&s.comm_shift!==false&&0))tags.push('<span class="tg">🕊 فيها تناول</span>');
   if(days===0&&st)tags.push(`<span class="tg ok">${st==='late'?'⏱ اتسجّل متأخر':'✅ تم تسجيل حضورك'}</span>`);
-  const sig=[s.id,s.service_date,s.service_time,s.location,s.title,days,st,s.comm_shift].join('|');
+  const sig=[s.id,s.service_date,s.service_time,s.location,s.title,days,st,s.comm_shift,s.cancel_until,s.cancel_forever,s.cancel_reason].join('|');
   if(e.dataset.sig!==sig){e.dataset.sig=sig;e.innerHTML=`<div class="cnt"><b class="${big[1]}">${big[0]}</b>${big[2]?`<small>${big[2]}</small>`:''}</div><div><div class="m">خدمتك الجاية</div><h3>${E(s.title||'')}</h3><div class="m">${E(dt)}${tm?' · '+E(tm):''}${s.location?' · '+E(s.location):''}</div>${tags.length?`<div class="tags">${tags.join('')}</div>`:''}</div>`}
 }
 setInterval(async()=>{if(typeof db==='undefined'||!db||typeof currentUser==='undefined'||!currentUser)return;await loadMine();nextTick();verseTick()},1500);

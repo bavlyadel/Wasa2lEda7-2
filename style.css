@@ -203,3 +203,10 @@ dialog.x-dlg::backdrop{background:#000a}dialog.x-dlg label{display:block;margin:
 .cal-c.now{border-color:var(--accent)}.cal-c.sel{outline:2px solid var(--gold,#f2c14e)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:6px}
 @media(max-width:600px){.cal-c{min-height:54px}.cal-c i{font-size:9px}}
+
+/* v18: إلغاء الخدمة */
+tr.x-cx{opacity:.62}.cx-b{display:inline-block;background:#ff879422;color:var(--red);border:1px solid var(--red);padding:1px 9px;border-radius:99px;font-size:12px;font-weight:800;margin-inline-start:6px}
+.cx-btn{color:var(--red)!important;border-color:var(--red)!important}
+#x-next.cx{border-color:var(--red)}
+.cx-o{display:block;padding:9px 12px;border:1px solid var(--line);border-radius:12px;margin:6px 0}.cx-o>span{display:block;margin-top:6px}
+.chip.on{background:var(--blue2);color:#fff}.cal-c i.cxd{text-decoration:line-through;opacity:.5}

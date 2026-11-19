@@ -127,11 +127,14 @@ function applyCommShift(list){
     return Object.assign(o,s,{service_time:s.comm_time||s.service_time,location:s.comm_location||s.location,comm_shift:true});
   });
 }
+function xCx(s){return !!(s&&(s.cancel_forever||(s.cancel_until&&s.service_date<=s.cancel_until)))}
+window.xCx=xCx;
 async function refreshData(){
   if(!db||!currentUser)return;
   const {data:services,error}=await db.from("services").select("*").order("service_date",{ascending:true}).order("service_time",{ascending:true});
   if(error){$("services-body").innerHTML=`<tr><td colspan="7" class="empty">تعذر تحميل الجدول: ${escapeHtml(error.message)}</td></tr>`;return;}
-  servicesCache=applyCommShift((services||[]).slice().sort((a,b)=>(a.service_date+(a.service_time||"")).localeCompare(b.service_date+(b.service_time||""))));
+  window.xAllSvc=applyCommShift((services||[]).slice().sort((a,b)=>(a.service_date+(a.service_time||"")).localeCompare(b.service_date+(b.service_time||""))));
+  servicesCache=window.xAllSvc.filter(s=>!xCx(s)); /* الخدمات الملغاة بره servicesCache (مش بتظهر في الباقي) وبتظهر في الجدول بس */
   const upcoming=servicesCache.filter(s=>s.service_date>=new Date().toISOString().slice(0,10));
   $("stat-upcoming").textContent=upcoming.length;
   $("stat-mine").textContent=servicesCache.filter(s=>s.assignee_id===currentUser.id).length;

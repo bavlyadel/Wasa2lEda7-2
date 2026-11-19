@@ -37,12 +37,13 @@ function table(){
     if(!confirm('هتشيل كل الخدام من كل الخدمات في الجدول (المعتمدين والمسودة). الخدمات نفسها هتفضل زي ما هي. متأكد؟'))return;
     const r=await db.from('service_assignees').delete().in('service_id',servicesCache.map(s=>s.id));
     if(r.error)return alert(r.error.message);refreshData()};$('refresh').before(rb)}
-  if(!servicesCache.length)return;
-  $('services-body').innerHTML=servicesCache.slice().sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||''))).map(s=>{
+  if(!(window.xAllSvc||servicesCache).length)return;
+  $('services-body').innerHTML=(window.xAllSvc||servicesCache).slice().sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||''))).map(s=>{
     const names=A.filter(x=>x.service_id==s.id).map(x=>E(x.name)+(x.status=='draft'?' <small>(مسودة)</small>':'')).join('، ')||'—';
     const o=Math.ceil(+s.service_date.slice(8,10)/7);
     const comm=(s.communion_n&&s.communion_n==o)||s.comm_shift?' <span class="status approved">تناول</span>':'';
-    return `<tr><td><strong>${E(s.title)}</strong>${comm}</td><td>${dateText(s.service_date)}</td><td>${E(t12(s.service_time))}</td><td>${E(s.location)}</td><td>${names}</td><td>${E(s.notes||'—')}${admin()?` <button class="btn ghost" data-edit="${s.id}">تعديل</button>`:''}</td><td>${E(communionText(s))}</td></tr>`}).join('');
+    const cx=window.xCx&&xCx(s);
+    return `<tr${cx?' class="x-cx"':''}><td><strong>${cx?'<s>'+E(s.title)+'</s>':E(s.title)}</strong>${comm}${cx?` <span class="cx-b">🚫 ملغاة ${E(window.xCxText?xCxText(s):'')}</span>${s.cancel_reason?`<div class="muted" style="font-size:12px">السبب: ${E(s.cancel_reason)}</div>`:''}`:''}</td><td>${dateText(s.service_date)}</td><td>${E(t12(s.service_time))}</td><td>${E(s.location)}</td><td>${names}</td><td>${E(s.notes||'—')}${admin()?(cx?` <button class="btn ghost" data-rs="${s.id}">↩ إعادة تفعيل</button>`:` <button class="btn ghost" data-edit="${s.id}">تعديل</button> <button class="btn ghost cx-btn" data-cx="${s.id}">🚫 إلغاء</button>`):''}</td><td>${E(communionText(s))}</td></tr>`}).join('');
   document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(b.dataset.edit));
 }
 function bell(n){
@@ -104,7 +105,7 @@ async function approve(svs){
   alert('تم اعتماد الجدول وإشعار الخدام.');refreshData();
 }
 function edit(id){
-  const s=servicesCache.find(x=>x.id==id), cur=A.filter(x=>x.service_id==id);
+  const s=(window.xAllSvc||servicesCache).find(x=>x.id==id), cur=A.filter(x=>x.service_id==id);
   let d=$('x-dlg');if(!d){d=document.createElement('dialog');d.id='x-dlg';document.body.append(d)}
   d.innerHTML=`<div class="stack"><h3>تعديل الخدمة</h3>
   <label>الاسم<input id="e-t" value="${E(s.title)}"></label>

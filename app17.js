@@ -148,14 +148,14 @@ let cm=null,csel=null;
 const colOf=t=>{let h=0;for(const ch of String(t||''))h=(h*31+ch.charCodeAt(0))>>>0;return COL[h%COL.length]};
 function monthEvents(y,m){
   const map={},last=new Date(Date.UTC(y,m,0)).getUTCDate();
-  SV().forEach(s=>{if(!s.service_date)return;const base=dnum(s.service_date),rep=+s.repeat_days||0;
+  (window.xAllSvc||SV()).forEach(s=>{if(!s.service_date)return;const base=dnum(s.service_date),rep=+s.repeat_days||0;
     for(let d=1;d<=last;d++){const ds=`${y}-${p2(m)}-${p2(d)}`,n=dnum(ds);let ev=null;
       if(n===base)ev={s,real:true,time:s.service_time,loc:s.location,comm:!!s.comm_shift};
       else if(rep>0&&n>base&&(n-base)%rep===0){
         const dow=new Date(Date.UTC(y,m-1,d)).getUTCDay(),ord=Math.ceil(d/7),hit=s.comm_on&&dow===5&&(s.comm_ordinals||[]).includes(ord);
         const ot=s._ot!==undefined?s._ot:s.service_time,ol=s._ol!==undefined?s._ol:s.location;
         ev={s,real:false,time:hit&&s.comm_time?s.comm_time:ot,loc:hit&&s.comm_location?s.comm_location:ol,comm:!!hit}}
-      if(ev)(map[d]=map[d]||[]).push(ev)}});
+      if(ev){ev.cx=!!(s.cancel_forever||(s.cancel_until&&ds<=s.cancel_until));(map[d]=map[d]||[]).push(ev)}}});
   return map;
 }
 function renderCal(){
@@ -163,12 +163,12 @@ function renderCal(){
   const ev=monthEvents(cm.y,cm.m),first=new Date(Date.UTC(cm.y,cm.m-1,1)).getUTCDay(),last=new Date(Date.UTC(cm.y,cm.m,0)).getUTCDate(),isNow=cm.y===c.y&&cm.m===c.m;
   if(csel===null||csel>last)csel=isNow?+c.d.slice(8):1;
   let g=['س','ح','ن','ث','ر','خ','ج'].map(x=>`<div class="muted cal-h">${x}</div>`).join('')+'<div></div>'.repeat((first+1)%7);
-  for(let d=1;d<=last;d++){const L=ev[d]||[];g+=`<button type="button" class="cal-c ${isNow&&d===+c.d.slice(8)?'now':''} ${d===csel?'sel':''}" data-d="${d}"><span>${ar(d)}</span>${L.slice(0,3).map(x=>`<i class="${x.real?'':'prj'}" style="background:${colOf(x.s.title)}">${E(x.s.title)}</i>`).join('')}${L.length>3?`<small>+${ar(L.length-3)}</small>`:''}</button>`}
+  for(let d=1;d<=last;d++){const L=ev[d]||[];g+=`<button type="button" class="cal-c ${isNow&&d===+c.d.slice(8)?'now':''} ${d===csel?'sel':''}" data-d="${d}"><span>${ar(d)}</span>${L.slice(0,3).map(x=>`<i class="${x.real?'':'prj'}${x.cx?' cxd':''}" style="background:${colOf(x.s.title)}">${x.cx?'🚫 ':''}${E(x.s.title)}</i>`).join('')}${L.length>3?`<small>+${ar(L.length-3)}</small>`:''}</button>`}
   const names=s=>asg.filter(a=>String(a.service_id)===String(s.id)).map(a=>a.name).join('، ');
   const D=ev[csel]||[];
   el.innerHTML=`<div class="row-btns" style="justify-content:space-between;align-items:center"><h2 style="margin:0">📆 ${MN[cm.m-1]} ${ar(cm.y)}</h2><span class="row-btns"><button class="btn ghost" id="cal-p" type="button">▶</button><button class="btn ghost" id="cal-t" type="button">النهارده</button><button class="btn ghost" id="cal-n" type="button">◀</button></span></div>
    <div class="cal-g">${g}</div>
-   <div class="x-box"><b>${ar(csel)} ${MN[cm.m-1]}</b>${D.length?D.map(x=>`<div class="x-it" style="display:block"><span class="dot" style="background:${colOf(x.s.title)}"></span><b>${E(x.s.title)}</b> ${x.comm?'<span class="tg">🕊 تناول</span>':''}${x.real?'':' <span class="muted">(متوقعة)</span>'}<div class="muted">${E(ttxt(x.time))}${x.loc?' · '+E(x.loc):''}${x.real&&names(x.s)?' · '+E(names(x.s)):''}</div></div>`).join(''):'<p class="muted" style="margin:6px 0 0">مفيش خدمات في اليوم ده.</p>'}</div>
+   <div class="x-box"><b>${ar(csel)} ${MN[cm.m-1]}</b>${D.length?D.map(x=>`<div class="x-it" style="display:block"><span class="dot" style="background:${colOf(x.s.title)}"></span><b>${E(x.s.title)}</b> ${x.cx?'<span class="tg" style="color:var(--red)">🚫 ملغاة</span>':''}${x.comm?'<span class="tg">🕊 تناول</span>':''}${x.real?'':' <span class="muted">(متوقعة)</span>'}<div class="muted">${E(ttxt(x.time))}${x.loc?' · '+E(x.loc):''}${x.real&&names(x.s)?' · '+E(names(x.s)):''}</div></div>`).join(''):'<p class="muted" style="margin:6px 0 0">مفيش خدمات في اليوم ده.</p>'}</div>
    <p class="muted" style="font-size:12px">الخدمات الأسبوعية المتوقعة بتظهر باهتة، وأسماء الخدام بتظهر للخدمة الحالية بس.</p>`;
   el.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{csel=+b.dataset.d;renderCal()});
   const mv=k=>{cm.m+=k;if(cm.m>12){cm.m=1;cm.y++}if(cm.m<1){cm.m=12;cm.y--}csel=null;renderCal()};
