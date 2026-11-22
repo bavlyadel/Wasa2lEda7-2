@@ -210,3 +210,13 @@ tr.x-cx{opacity:.62}.cx-b{display:inline-block;background:#ff879422;color:var(--
 #x-next.cx{border-color:var(--red)}
 .cx-o{display:block;padding:9px 12px;border:1px solid var(--line);border-radius:12px;margin:6px 0}.cx-o>span{display:block;margin-top:6px}
 .chip.on{background:var(--blue2);color:#fff}.cal-c i.cxd{text-decoration:line-through;opacity:.5}
+
+/* v19: تطبيق (PWA) + قسم تعريفي */
+#x-toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:70;display:flex;gap:10px;align-items:center;background:var(--p1);color:var(--text);border:1px solid var(--line2);padding:10px 14px;border-radius:14px;box-shadow:0 10px 40px #0008;max-width:94vw}
+#x-offline{position:fixed;top:0;left:0;right:0;z-index:80;background:#b3541e;color:#fff;text-align:center;padding:6px 10px calc(6px) 10px;padding-top:calc(6px + env(safe-area-inset-top));font-size:13px;font-weight:700}
+#x-install{white-space:nowrap}
+.about{max-width:860px;margin:26px auto 40px;padding:0 4px;color:var(--text2);line-height:1.9}
+.about h2{margin:0 0 6px;color:var(--text)}.about ul{padding-inline-start:20px;margin:6px 0 0}
+#auth-view.hidden~#about-view{display:none}
+@media(display-mode:standalone){body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}}
+.topbar{padding-top:max(0px,env(safe-area-inset-top))}
