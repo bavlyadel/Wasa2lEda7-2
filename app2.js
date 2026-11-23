@@ -32,11 +32,26 @@ async function extras(){
 function table(){
   $('stat-mine').textContent=A.filter(x=>x.user_id===currentUser.id).length;
   const hr=document.querySelector('#services-panel thead tr');if(hr&&hr.children.length<7)hr.insertAdjacentHTML('beforeend','<th>جمعة التناول</th>');
-  if(admin()&&!$('reset-assign')){const rb=document.createElement('button');rb.id='reset-assign';rb.className='btn ghost';rb.textContent='تفضية الخدام من الجدول';rb.onclick=async()=>{
+  if(admin()&&!$('reset-assign')){const rb=document.createElement('button');rb.id='reset-assign';rb.className='btn ghost';rb.textContent='تفضية الخدام من الجدول';rb.onclick=()=>{
     if(!servicesCache.length)return alert('مفيش خدمات في الجدول.');
-    if(!confirm('هتشيل كل الخدام من كل الخدمات في الجدول (المعتمدين والمسودة). الخدمات نفسها هتفضل زي ما هي. متأكد؟'))return;
-    const r=await db.from('service_assignees').delete().in('service_id',servicesCache.map(s=>s.id));
-    if(r.error)return alert(r.error.message);refreshData()};$('refresh').before(rb)}
+    const pinOk=x=>x.pinned&&(!x.pin_until||x.pin_until>=iso(new Date())),ids=new Set(servicesCache.map(s=>String(s.id))),all=A.filter(x=>ids.has(String(x.service_id))),keep=all.filter(pinOk),n=all.length,k=keep.length;
+    if(!n)return alert('مفيش خدام في الجدول.');
+    const d=document.createElement('dialog');d.className='x-dlg';
+    d.innerHTML=`<h3 style="margin-top:0">تفضية الخدام من الجدول</h3><p class="muted">الخدمات نفسها هتفضل زي ما هي.</p>
+     <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer"><input type="radio" name="rst" value="all" checked style="width:auto;margin-top:6px"><span><b>تصفية كاملة</b><br><small class="muted">بتشيل كل الخدام (${n} تكليف) حتى المثبّتين.</small></span></label>
+     <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer"><input type="radio" name="rst" value="keep" style="width:auto;margin-top:6px"><span><b>تصفية ما عدا المثبّتين 📌</b><br><small class="muted">بتشيل ${n-k} تكليف وبتسيب ${k} مثبّت.</small></span></label>
+     <div class="row-btns" style="margin-top:14px"><button class="btn primary" id="rst-go" type="button">تنفيذ التصفية</button><button class="btn ghost" id="rst-x" type="button">إلغاء</button></div>`;
+    document.body.appendChild(d);d.addEventListener('close',()=>d.remove());d.showModal();
+    d.querySelector('#rst-x').onclick=()=>d.close();
+    d.querySelector('#rst-go').onclick=async()=>{
+      const keepPins=d.querySelector('[name=rst]:checked').value==='keep',del=(keepPins?all.filter(x=>!pinOk(x)):all);
+      if(!del.length){d.close();return alert('مفيش حاجة تتشال، كل الخدام مثبّتين.')}
+      if(!confirm(keepPins?`هتتشال ${del.length} تكليف وهيفضل ${k} مثبّت. متأكد؟`:`هتشيل كل الخدام (${del.length} تكليف) حتى المثبّتين. متأكد؟`))return;
+      d.querySelector('#rst-go').disabled=true;
+      const r=keepPins?await db.from('service_assignees').delete().in('id',del.map(x=>x.id)):await db.from('service_assignees').delete().in('service_id',servicesCache.map(s=>s.id));
+      if(r.error){d.querySelector('#rst-go').disabled=false;return alert(r.error.message)}
+      d.close();refreshData()}};
+    $('refresh').before(rb)}
   if(!(window.xAllSvc||servicesCache).length)return;
   $('services-body').innerHTML=(window.xAllSvc||servicesCache).slice().sort((a,b)=>(a.service_date+(a.service_time||'')).localeCompare(b.service_date+(b.service_time||''))).map(s=>{
     const names=A.filter(x=>x.service_id==s.id).map(x=>E(x.name)+(x.status=='draft'?' <small>(مسودة)</small>':'')).join('، ')||'—';
