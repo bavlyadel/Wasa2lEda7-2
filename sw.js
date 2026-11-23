@@ -1,7 +1,7 @@
 /* Service worker: تطبيق (PWA) + استقبال إشعارات الموبايل (Web Push)
    - الملفات الثابتة: الشبكة أولًا (التحديثات توصل فورًا) مع نسخة احتياطية للأوفلاين.
    - طلبات Supabase (الدخول والبيانات) مش بتتخزّن أبدًا ومش بنلمسها. */
-const V = 'wasael-v18';
+const V = 'wasael-v20';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'assets/icon-192.png', 'assets/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
